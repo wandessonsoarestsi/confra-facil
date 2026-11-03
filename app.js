@@ -236,7 +236,7 @@ function createForm() {
     </div>
     <fieldset>
       <legend>Dias da semana possíveis</legend>
-      <div class="chips">${WD_NAMES.map((n, i) => `<label class="chip"><input type="checkbox" name="wd" value="${i}" checked><span>${n}</span></label>`).join("")}</div>
+      <div class="chips">${WD_NAMES.map((n, i) => `<label class="chip"><input type="checkbox" name="wd" value="${i}" ${i === 0 || i === 6 ? "checked" : ""}><span>${n}</span></label>`).join("")}</div>
     </fieldset>
     <label class="check"><input type="checkbox" name="public" checked> Participantes podem ver o resultado parcial</label>
     <button class="btn primary" type="submit">Criar evento</button>
@@ -401,6 +401,12 @@ function tabAdmin(ev) {
       <label class="check"><input type="checkbox" data-act="toggle-public" ${ev.showResults ? "checked" : ""}> Participantes veem o resultado parcial</label>
     </div>
     <div class="card stack">
+      <h3>Dias da semana em votação</h3>
+      <p class="hint">Mudar os dias não apaga nenhuma resposta. O ranking passa a considerar só os dias marcados aqui.</p>
+      <div class="chips" id="wd-edit">${WD_NAMES.map((n, i) => `<label class="chip"><input type="checkbox" value="${i}" ${(ev.weekdays ?? [0, 1, 2, 3, 4, 5, 6]).includes(i) ? "checked" : ""}><span>${n}</span></label>`).join("")}</div>
+      <button class="btn" data-act="save-wd">Salvar dias</button>
+    </div>
+    <div class="card stack">
       <h3>Definir a data final</h3>
       <p class="hint">Ao confirmar, a votação é encerrada e todos veem a data escolhida.</p>
       <select id="final-sel">${options.map((o) => `<option value="${o.date}" ${o.date === ev.finalDate ? "selected" : ""}>${esc(o.label)}</option>`).join("")}</select>
@@ -548,6 +554,13 @@ const actions = {
     if (!v) return;
     await api.updateEvent(page.ev.id, { finalDate: v, closed: true });
     toast("Data definida! Avise o grupo pelo WhatsApp.");
+  },
+  async "save-wd"() {
+    const weekdays = [...app.querySelectorAll("#wd-edit input:checked")].map((i) => Number(i.value));
+    if (!weekdays.length) return toast("Escolha pelo menos um dia da semana.");
+    if (!candidateDates({ ...page.ev, weekdays }).length) return toast("Nenhum dia do período cai nesses dias da semana.");
+    await api.updateEvent(page.ev.id, { weekdays });
+    toast("Dias atualizados. As respostas foram mantidas.");
   },
   "clear-final"() { return api.updateEvent(page.ev.id, { finalDate: null }); },
   async "del-event"(el) {
