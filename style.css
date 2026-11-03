@@ -192,3 +192,4 @@ summary { cursor: pointer; }
 .tag { display: inline-block; font-size: .72rem; font-weight: 700; padding: 1px 8px; border-radius: 99px; margin-right: 4px; }
 .tag.y { background: var(--can-soft); color: var(--can); }
 .tag.n { background: var(--cannot-soft); color: var(--cannot); }
+.mode-btn:disabled { opacity: .4; cursor: not-allowed; }

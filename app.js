@@ -290,10 +290,10 @@ function tabMine(ev, mine) {
     : (n ? `Você não pode em ${plural(n, "dia", "dias")}` : "Nenhum dia marcado: você pode em todos");
   return `<section class="stack">
     <div class="mode">
-      <button class="mode-btn ${d.mode === "can" ? "on can" : ""}" data-act="mode" data-mode="can" aria-pressed="${d.mode === "can"}">✅ Marcar os dias que <b>posso</b></button>
-      <button class="mode-btn ${d.mode === "cannot" ? "on cannot" : ""}" data-act="mode" data-mode="cannot" aria-pressed="${d.mode === "cannot"}">🚫 Marcar os dias que <b>não posso</b></button>
+      <button class="mode-btn ${d.mode === "can" ? "on can" : ""}" data-act="mode" data-mode="can" aria-pressed="${d.mode === "can"}" ${n && d.mode !== "can" ? "disabled" : ""}>✅ Marcar os dias que <b>posso</b></button>
+      <button class="mode-btn ${d.mode === "cannot" ? "on cannot" : ""}" data-act="mode" data-mode="cannot" aria-pressed="${d.mode === "cannot"}" ${n && d.mode !== "cannot" ? "disabled" : ""}>🚫 Marcar os dias que <b>não posso</b></button>
     </div>
-    <p class="hint">${d.mode === "can" ? "Toque nos dias em que você <b>pode</b> ir." : "Toque nos dias em que você <b>não pode</b> ir. Os outros dias contam como livres."} Dias em cinza não estão em votação.</p>
+    <p class="hint">${d.mode === "can" ? "Toque nos dias em que você <b>pode</b> ir." : "Toque nos dias em que você <b>não pode</b> ir. Os outros dias contam como livres."} Dias em cinza não estão em votação.${n ? ` Para trocar entre "posso" e "não posso", toque em <b>limpar</b> primeiro.` : ""}</p>
     ${calendar(ev, "pick")}
     <div class="savebar">
       <span>${summary}${n ? ` · <button class="link" data-act="clear">limpar</button>` : ""}</span>
@@ -554,7 +554,8 @@ const actions = {
   mode(el) {
     const mode = el.dataset.mode;
     if (mode === page.draft.mode) return;
-    if (page.draft.dates.size) toast("Seleção limpa: agora marque os dias de novo.");
+    const valid = new Set(candidateDates(page.ev));
+    if ([...page.draft.dates].some((x) => valid.has(x))) return toast("Para trocar, toque em \"limpar\" primeiro.");
     page.draft = { mode, dates: new Set() };
     page.dirty = true;
     renderEvent();
@@ -575,7 +576,7 @@ const actions = {
       name: profile.name,
       phone: profile.phone || user.phone || null,
       mode: page.draft.mode,
-      dates: [...page.draft.dates].sort(),
+      dates: [...page.draft.dates].filter((x) => candidateDates(ev).includes(x)).sort(),
     };
     page.dirty = false;
     try {
