@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+
+    // Perfil (nome e telefone) de cada pessoa: só ela lê e escreve.
+    match /users/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /events/{eventId} {
+      function ev() { return get(/databases/$(database)/documents/events/$(eventId)).data; }
+      function isAdmin() { return signedIn() && ev().adminUid == request.auth.uid; }
+
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.adminUid == request.auth.uid;
+      allow update: if signedIn() && resource.data.adminUid == request.auth.uid
+                    && request.resource.data.adminUid == resource.data.adminUid;
+      allow delete: if signedIn() && resource.data.adminUid == request.auth.uid;
+
+      // Resposta de cada participante: o documento tem o id da própria pessoa.
+      match /responses/{uid} {
+        allow read: if signedIn();
+        allow create, update: if signedIn() && request.auth.uid == uid
+                              && ev().closed == false
+                              && request.resource.data.mode in ['can', 'cannot']
+                              && request.resource.data.dates is list
+                              && request.resource.data.dates.size() <= 200
+                              && request.resource.data.name is string
+                              && request.resource.data.name.size() <= 40;
+        allow delete: if signedIn() && (request.auth.uid == uid || isAdmin());
+      }
+    }
+  }
+}
