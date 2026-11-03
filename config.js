@@ -21,6 +21,11 @@ export const CONFIG = {
   // "simples" -> a pessoa informa nome e telefone, sem código (100% grátis, plano Spark)
   authMode: "simples",
 
+  // Telefones de quem pode criar eventos (o organizador). Ex.: ["(11) 98765-4321"]
+  // Quem não estiver na lista só consegue marcar datas pelo link do evento.
+  // Deixe a lista vazia [] para qualquer pessoa poder criar eventos.
+  adminPhones: [],
+
   // Código do país usado quando a pessoa digita só DDD + número
   defaultCountryCode: "+55",
 };

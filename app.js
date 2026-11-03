@@ -64,6 +64,13 @@ function errMsg(e) {
 }
 function showError(e) { console.error(e); toast(errMsg(e), 5000); }
 
+// Quem pode criar eventos: todos, ou só os telefones em CONFIG.adminPhones.
+function canCreate() {
+  const list = (CONFIG.adminPhones || []).map(normalizePhone);
+  if (!list.length) return true;
+  return list.includes(normalizePhone(profile?.phone || user?.phone || ""));
+}
+
 // ---------- cálculo ----------
 function candidateDates(ev) {
   const out = [];
@@ -195,6 +202,10 @@ async function renderHome() {
         <span>${fmtShort(ev.start)} a ${fmtShort(ev.end)}${ev.finalDate ? ` · data: ${fmtShort(ev.finalDate)}` : ev.closed ? " · encerrado" : ""}</span>
       </a></li>`).join("")}</ul>`
     : `<p class="muted">Você ainda não criou nenhum evento. Se recebeu um link no grupo, é só abrir o link.</p>`;
+  if (!canCreate()) {
+    const mine = events.length ? `<section class="stack"><h2>Meus eventos</h2>${list}</section>` : "";
+    return renderShell(`${mine}<div class="card stack"><h2>Abra o link do grupo</h2><p>Para marcar suas datas, toque no link do evento que o organizador mandou no grupo do WhatsApp.</p></div>`);
+  }
   renderShell(`<section class="stack"><h2>Meus eventos</h2>${list}</section>${createForm()}`);
 }
 
@@ -223,7 +234,9 @@ function renderEvent() {
   if (!page.loaded) return;
   const ev = page.ev;
   if (!ev) {
-    return renderShell(`<div class="card stack"><h2>Evento não encontrado</h2><p>Confira se o link está completo.</p><button class="btn" data-act="home">Ir para o início</button></div>`);
+    return renderShell(`<div class="card stack"><h2>Evento não encontrado</h2><p>${api.isDemo
+      ? "O site ainda está em modo demonstração, então os eventos ficam salvos só no aparelho de quem criou. O organizador precisa configurar o Firebase para o link funcionar para todos."
+      : "Confira se o link está completo ou peça o link de novo ao organizador."}</p></div>`);
   }
   const isAdmin = ev.adminUid === user.uid;
   const mine = page.responses.find((r) => r.uid === user.uid);
@@ -356,6 +369,7 @@ function tabAdmin(ev) {
   const options = (rank.length ? rank.slice(0, 15).map((r) => ({ date: r.date, label: `${fmtLong(r.date)} (${r.yes.length}/${total})` })) : candidateDates(ev).map((d) => ({ date: d, label: fmtLong(d) })));
   const finalMsg = ev.finalDate ? `🎉 *${ev.name}*\n\nData definida: *${fmtLong(ev.finalDate)}*!\n${link}` : "";
   return `<section class="stack">
+    ${api.isDemo ? `<div class="card stack warn"><h3>O link ainda não funciona para o grupo</h3><p>O site está em modo demonstração: este evento existe só neste aparelho. Configure o Firebase (veja o LEIA-ME) antes de mandar o link.</p></div>` : ""}
     <div class="card stack">
       <h3>Convidar o grupo</h3>
       <p class="hint">Envie este link no grupo do WhatsApp. Cada pessoa entra com o telefone e marca as datas.</p>
@@ -439,6 +453,7 @@ const forms = {
       adminName: profile.name,
       createdAt: Date.now(),
     };
+    if (!canCreate()) return toast("Só o organizador pode criar eventos.");
     if (!candidateDates(ev).length) return toast("Nenhum dia do período cai nos dias da semana escolhidos.");
     const id = await api.createEvent(ev);
     go(id);

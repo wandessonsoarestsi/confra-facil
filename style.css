@@ -138,6 +138,7 @@ legend { font-weight: 600; font-size: .92rem; margin-bottom: 8px; }
   box-shadow: 0 6px 20px rgba(0,0,0,.12); font-size: .9rem;
 }
 
+.warn { border-color: var(--cannot); background: var(--cannot-soft); }
 .highlight { border-color: var(--accent); display: grid; gap: 4px; }
 .kicker { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); font-weight: 700; }
 .big { font-size: 1.4rem; font-weight: 700; }
