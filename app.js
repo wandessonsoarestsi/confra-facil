@@ -65,11 +65,20 @@ function errMsg(e) {
 function showError(e) { console.error(e); toast(errMsg(e), 5000); }
 
 // Quem pode criar eventos: todos, ou só os telefones em CONFIG.adminPhones.
-function canCreate() {
-  const list = (CONFIG.adminPhones || []).map(normalizePhone);
-  if (!list.length) return true;
-  return list.includes(normalizePhone(profile?.phone || user?.phone || ""));
+// A lista guarda o SHA-256 do telefone (ex.: "+5583999999999"), para não expor o número.
+let organizer = false;
+async function sha256(text) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
+async function refreshOrganizer() {
+  const list = CONFIG.adminPhones || [];
+  if (!list.length) { organizer = true; return; }
+  const phone = normalizePhone(profile?.phone || user?.phone || "");
+  const hash = await sha256(phone);
+  organizer = list.some((x) => x === hash || normalizePhone(x) === phone);
+}
+function canCreate() { return organizer; }
 
 // ---------- cálculo ----------
 function candidateDates(ev) {
@@ -434,6 +443,7 @@ const forms = {
     const p = { ...(profile || {}), name, phone: user.phone || profile?.phone || null };
     await api.saveProfile(user.uid, p);
     profile = p;
+    await refreshOrganizer();
     route();
   },
   async "f-create"(fd) {
@@ -574,6 +584,7 @@ async function boot() {
         }
       } catch (e) { showError(e); }
     }
+    try { await refreshOrganizer(); } catch (e) { console.error(e); organizer = !(CONFIG.adminPhones || []).length; }
     route();
   });
 }
