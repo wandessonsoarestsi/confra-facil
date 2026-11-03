@@ -75,6 +75,8 @@ export async function createFirebaseBackend(cfg, authMode) {
 
     deleteResponse: (id, uid) => F.deleteDoc(F.doc(db, "events", id, "responses", uid)),
 
+    deleteEvent: (id) => F.deleteDoc(F.doc(db, "events", id)),
+
     async listMyEvents(uid) {
       const qs = await F.getDocs(F.query(F.collection(db, "events"), F.where("adminUid", "==", uid)));
       return toList(qs);

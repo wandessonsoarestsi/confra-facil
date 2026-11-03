@@ -91,6 +91,8 @@ legend { font-weight: 600; font-size: .92rem; margin-bottom: 8px; }
 }
 .btn.primary { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
 .btn.wa { background: var(--wa); color: #fff; border-color: var(--wa); }
+.btn.danger { color: var(--cannot); border-color: var(--cannot); }
+.back { color: var(--muted); font-size: .9rem; text-decoration: none; }
 .btn:disabled { opacity: .55; cursor: default; }
 .link { background: none; border: 0; padding: 0; font: inherit; color: var(--brand); cursor: pointer; text-decoration: underline; font-size: .9rem; }
 .link.danger { color: var(--cannot); }

@@ -86,6 +86,8 @@ export function createDemoBackend(authMode) {
 
     async deleteResponse(id, uid) { delete (mem.responses[id] || {})[uid]; write(); },
 
+    async deleteEvent(id) { delete mem.events[id]; delete mem.responses[id]; write(); },
+
     async listMyEvents(uid) {
       return Object.entries(mem.events).filter(([, e]) => e.adminUid === uid).map(([id, e]) => ({ id, ...e }));
     },

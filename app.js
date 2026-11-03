@@ -75,8 +75,12 @@ async function refreshOrganizer() {
   const list = CONFIG.adminPhones || [];
   if (!list.length) { organizer = true; return; }
   const phone = normalizePhone(profile?.phone || user?.phone || "");
-  const hash = await sha256(phone);
-  organizer = list.some((x) => x === hash || normalizePhone(x) === phone);
+  // Aceita também quem digitou o 55 sem o "+" (ex.: 5583999999999).
+  const variants = [phone];
+  const m = phone.match(/^\+(55)(55\d{10,11})$/);
+  if (m) variants.push("+" + m[2]);
+  const hashes = await Promise.all(variants.map(sha256));
+  organizer = list.some((x) => hashes.includes(x) || variants.includes(normalizePhone(x)));
 }
 function canCreate() { return organizer; }
 
@@ -245,7 +249,8 @@ function renderEvent() {
   if (!ev) {
     return renderShell(`<div class="card stack"><h2>Evento não encontrado</h2><p>${api.isDemo
       ? "O site ainda está em modo demonstração, então os eventos ficam salvos só no aparelho de quem criou. O organizador precisa configurar o Firebase para o link funcionar para todos."
-      : "Confira se o link está completo ou peça o link de novo ao organizador."}</p></div>`);
+      : "Confira se o link está completo ou peça o link de novo ao organizador. Se o evento foi apagado, peça o link novo."}</p>
+      ${canCreate() ? `<button class="btn primary" data-act="home">Ir para meus eventos</button>` : ""}</div>`);
   }
   const isAdmin = ev.adminUid === user.uid;
   const mine = page.responses.find((r) => r.uid === user.uid);
@@ -258,6 +263,7 @@ function renderEvent() {
 
   const body = page.tab === "resultado" ? tabResults(ev) : page.tab === "admin" ? tabAdmin(ev) : tabMine(ev, mine);
   renderShell(`
+    ${isAdmin ? `<a href="${location.pathname}" class="back" data-act="home">← Meus eventos</a>` : ""}
     <section class="ev-head">
       <h1>${esc(ev.name)}</h1>
       ${ev.desc ? `<p>${esc(ev.desc)}</p>` : ""}
@@ -409,6 +415,11 @@ function tabAdmin(ev) {
         <button class="link danger" data-act="del-resp" data-uid="${esc(r.uid)}" data-name="${esc(r.name)}">remover</button>
       </li>`).join("")}</ul>` : `<p class="muted">Nenhuma resposta ainda.</p>`}
     </div>
+    <div class="card stack">
+      <h3>Apagar evento</h3>
+      <p class="hint">Apaga o evento e todas as respostas. O link deixa de funcionar.</p>
+      <button class="btn danger" data-act="del-event">Apagar este evento</button>
+    </div>
     ${api.isDemo ? `<div class="card stack"><h3>Testar o cálculo</h3><p class="hint">Só no modo demonstração: adiciona respostas fictícias.</p><button class="btn" data-act="fake">Adicionar 8 participantes fictícios</button></div>` : ""}
   </section>`;
 }
@@ -539,6 +550,14 @@ const actions = {
     toast("Data definida! Avise o grupo pelo WhatsApp.");
   },
   "clear-final"() { return api.updateEvent(page.ev.id, { finalDate: null }); },
+  async "del-event"(el) {
+    if (el.dataset.confirm !== "1") { el.dataset.confirm = "1"; el.textContent = "Toque de novo para apagar de vez"; return; }
+    const id = page.ev.id;
+    for (const r of page.responses) await api.deleteResponse(id, r.uid);
+    await api.deleteEvent(id);
+    toast("Evento apagado.");
+    go(null);
+  },
   async "del-resp"(el) {
     if (el.dataset.confirm !== "1") { el.dataset.confirm = "1"; el.textContent = "confirmar remoção?"; return; }
     await api.deleteResponse(page.ev.id, el.dataset.uid);
