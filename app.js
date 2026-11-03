@@ -283,7 +283,8 @@ function tabMine(ev, mine) {
       ${mine ? `${mySummary(ev, mine)}${calendar(ev, "readonly")}` : ""}
     </section>`;
   }
-  const n = d.dates.size;
+  const valid = new Set(candidateDates(ev));
+  const n = [...d.dates].filter((x) => valid.has(x)).length;
   const summary = d.mode === "can"
     ? (n ? `Você pode em ${plural(n, "dia", "dias")}` : "Nenhum dia marcado")
     : (n ? `Você não pode em ${plural(n, "dia", "dias")}` : "Nenhum dia marcado: você pode em todos");
@@ -379,8 +380,8 @@ function mySummary(ev, mine) {
   const { can, cannot } = availability(ev, mine);
   return `<div class="card stack mine-summary">
     <h3>O que você marcou</h3>
-    <p><span class="tag y">Pode</span> ${can.length ? can.map(fmtLong).join(", ") : "nenhum dia"}</p>
-    <p><span class="tag n">Não pode</span> ${cannot.length ? cannot.map(fmtLong).join(", ") : "nenhum dia"}</p>
+    <p><span class="tag y">Pode</span> ${can.length ? can.map(fmtShort).join(", ") : "nenhum dia"}</p>
+    <p><span class="tag n">Não pode</span> ${cannot.length ? cannot.map(fmtShort).join(", ") : "nenhum dia"}</p>
   </div>`;
 }
 
