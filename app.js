@@ -280,7 +280,7 @@ function tabMine(ev, mine) {
   if (ev.closed) {
     return `<section class="stack">
       <div class="card"><p>A votação foi encerrada pelo organizador.${mine ? " Estas foram as suas respostas:" : ""}</p></div>
-      ${mine ? `<p class="hint">${mine.mode === "can" ? "✅ Datas que você pode" : "🚫 Datas que você não pode"}</p>${calendar(ev, "readonly")}` : ""}
+      ${mine ? `${mySummary(ev, mine)}${calendar(ev, "readonly")}` : ""}
     </section>`;
   }
   const n = d.dates.size;
@@ -298,7 +298,7 @@ function tabMine(ev, mine) {
       <span>${summary}${n ? ` · <button class="link" data-act="clear">limpar</button>` : ""}</span>
       <button class="btn primary" data-act="save" ${!page.dirty && mine ? "disabled" : ""}>${mine ? (page.dirty ? "Salvar alterações" : "Salvo ✓") : "Salvar minhas datas"}</button>
     </div>
-    ${mine && !page.dirty ? `<p class="ok">Suas datas estão salvas. Você pode alterar até o organizador encerrar a votação.</p>` : ""}
+    ${mine && !page.dirty ? `<p class="ok">Suas datas estão salvas. Você pode alterar até o organizador encerrar a votação.</p>${mySummary(ev, mine)}` : ""}
   </section>`;
 }
 
@@ -374,6 +374,50 @@ function tabResults(ev) {
   </section>`;
 }
 
+// Resumo para o participante conferir o que marcou.
+function mySummary(ev, mine) {
+  const { can, cannot } = availability(ev, mine);
+  return `<div class="card stack mine-summary">
+    <h3>O que você marcou</h3>
+    <p><span class="tag y">Pode</span> ${can.length ? can.map(fmtLong).join(", ") : "nenhum dia"}</p>
+    <p><span class="tag n">Não pode</span> ${cannot.length ? cannot.map(fmtLong).join(", ") : "nenhum dia"}</p>
+  </div>`;
+}
+
+// Visão do organizador: quem pode e quem não pode em cada data.
+function availability(ev, r) {
+  const set = new Set(r.dates || []);
+  const can = [], cannot = [];
+  for (const d of candidateDates(ev)) {
+    const ok = r.mode === "can" ? set.has(d) : !set.has(d);
+    (ok ? can : cannot).push(d);
+  }
+  return { can, cannot };
+}
+
+function adminResponses(ev) {
+  const dates = candidateDates(ev);
+  const people = page.responses.slice().sort((a, b) => a.name.localeCompare(b.name)).map((r) => ({ r, ...availability(ev, r) }));
+  const wd = (d) => WD_NAMES[fromISO(d).getDay()];
+  const table = `<div class="matrix-wrap"><table class="matrix">
+    <thead><tr><th>Nome</th>${dates.map((d) => `<th><span>${wd(d)}</span>${fmtShort(d)}</th>`).join("")}</tr></thead>
+    <tbody>${people.map(({ r, can }) => {
+      const c = new Set(can);
+      return `<tr><th>${esc(r.name)}</th>${dates.map((d) => c.has(d) ? `<td class="y" title="Pode">✓</td>` : `<td class="n" title="Não pode">✗</td>`).join("")}</tr>`;
+    }).join("")}</tbody>
+    <tfoot><tr><th>Podem</th>${dates.map((d) => `<td>${people.filter((p) => p.can.includes(d)).length}</td>`).join("")}</tr></tfoot>
+  </table></div>`;
+  const list = `<ul class="admin-people">${people.map(({ r, can, cannot }) => `<li>
+    <details>
+      <summary><b>${esc(r.name)}</b><span class="muted">${r.phone ? esc(fmtPhone(r.phone)) + " · " : ""}marcou os dias que ${r.mode === "can" ? "pode" : "não pode"}</span></summary>
+      <p><span class="tag y">Pode</span> ${can.length ? can.map(fmtShort).join(", ") : "nenhum dia"}</p>
+      <p><span class="tag n">Não pode</span> ${cannot.length ? cannot.map(fmtShort).join(", ") : "nenhum dia"}</p>
+      <button class="link danger" data-act="del-resp" data-uid="${esc(r.uid)}" data-name="${esc(r.name)}">remover resposta</button>
+    </details>
+  </li>`).join("")}</ul>`;
+  return `<p class="hint">✓ pode · ✗ não pode. Arraste a tabela para o lado para ver todas as datas.</p>${table}<p class="hint">Toque no nome para ver as datas de cada pessoa.</p>${list}`;
+}
+
 function shareLink(id) { return `${location.origin}${location.pathname}?e=${encodeURIComponent(id)}`; }
 
 function tabAdmin(ev) {
@@ -416,10 +460,7 @@ function tabAdmin(ev) {
     </div>
     <div class="card stack">
       <h3>Respostas (${total})</h3>
-      ${total ? `<ul class="admin-people">${page.responses.slice().sort((a, b) => a.name.localeCompare(b.name)).map((r) => `<li>
-        <div><b>${esc(r.name)}</b><span class="muted">${r.phone ? esc(fmtPhone(r.phone)) + " · " : ""}${r.mode === "can" ? "pode em" : "não pode em"} ${plural((r.dates || []).length, "dia", "dias")}</span></div>
-        <button class="link danger" data-act="del-resp" data-uid="${esc(r.uid)}" data-name="${esc(r.name)}">remover</button>
-      </li>`).join("")}</ul>` : `<p class="muted">Nenhuma resposta ainda.</p>`}
+      ${total ? adminResponses(ev) : `<p class="muted">Nenhuma resposta ainda.</p>`}
     </div>
     <div class="card stack">
       <h3>Apagar evento</h3>

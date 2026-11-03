@@ -175,3 +175,20 @@ summary { cursor: pointer; }
   transition: .2s; max-width: calc(100% - 32px); text-align: center; z-index: 10;
 }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+.matrix-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+.matrix { border-collapse: collapse; font-size: .85rem; font-variant-numeric: tabular-nums; }
+.matrix th, .matrix td { padding: 6px 8px; text-align: center; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.matrix thead th { font-weight: 600; font-size: .78rem; color: var(--muted); }
+.matrix thead th span { display: block; }
+.matrix tbody th, .matrix tfoot th, .matrix thead th:first-child { position: sticky; left: 0; background: var(--surface); text-align: left; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+.matrix td.y { color: var(--can); font-weight: 700; }
+.matrix td.n { color: var(--cannot); }
+.matrix tfoot td, .matrix tfoot th { font-weight: 700; border-bottom: 0; }
+.admin-people details { width: 100%; }
+.admin-people summary { display: grid; cursor: pointer; }
+.admin-people details[open] { display: grid; gap: 6px; }
+.admin-people details p { font-size: .88rem; }
+.tag { display: inline-block; font-size: .72rem; font-weight: 700; padding: 1px 8px; border-radius: 99px; margin-right: 4px; }
+.tag.y { background: var(--can-soft); color: var(--can); }
+.tag.n { background: var(--cannot-soft); color: var(--cannot); }
