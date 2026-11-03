@@ -15,7 +15,14 @@ export const CONFIG = {
   //   messagingSenderId: "1234567890",
   //   appId: "1:1234567890:web:abc123",
   // },
-  firebase: null,
+  firebase: {
+    apiKey: "AIzaSyBU4fvtTe5MYP2vYuFoVAEAtcHfx7SoHck",
+    authDomain: "confra-facil.firebaseapp.com",
+    projectId: "confra-facil",
+    storageBucket: "confra-facil.firebasestorage.app",
+    messagingSenderId: "773956627905",
+    appId: "1:773956627905:web:62abc131551bce0f295340",
+  },
 
   // "sms"     -> a pessoa recebe um código por SMS (Firebase plano Blaze; 10 SMS/dia grátis)
   // "simples" -> a pessoa informa nome e telefone, sem código (100% grátis, plano Spark)
