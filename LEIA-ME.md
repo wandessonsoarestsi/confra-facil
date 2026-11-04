@@ -99,3 +99,9 @@ Em **Authentication → Configurações → Domínios autorizados**, clique em *
 | `demo-backend.js` | Modo demonstração (sem Firebase) |
 | `firestore.rules` | Regras de segurança do banco |
 | `firebase.json` | Configuração do Firebase Hosting |
+
+## Proteção contra robôs (opcional)
+1. Acesse https://www.google.com/recaptcha/admin/create, escolha **reCAPTCHA v3** e adicione o domínio do site (ex.: `confra-facil.vercel.app`). Copie a **chave do site** e a **chave secreta**.
+2. No Firebase, abra **Segurança → App Check**, escolha o app Web, selecione **reCAPTCHA** e cole a **chave secreta**.
+3. Cole a **chave do site** em `appCheckSiteKey` no `config.js` e publique.
+4. Depois de um ou dois dias vendo as métricas no App Check, ative **Aplicar** para o Firestore e o Authentication.

@@ -187,74 +187,164 @@ function openEvent(id) {
   }, showError));
 }
 
+// ---------- ícones e marca ----------
+const ICONS = {
+  calendar: '<rect x="3" y="4.5" width="18" height="17" rx="3.5"/><path d="M16 2.5v4M8 2.5v4M3 10h18"/>',
+  calCheck: '<rect x="3" y="4.5" width="18" height="17" rx="3.5"/><path d="M16 2.5v4M8 2.5v4M3 10h18M9 15.5l2 2 4-4"/>',
+  calX: '<rect x="3" y="4.5" width="18" height="17" rx="3.5"/><path d="M16 2.5v4M8 2.5v4M3 10h18M10 14l4 4M14 14l-4 4"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',
+  back: '<path d="m15 18-6-6 6-6"/>',
+  arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/>',
+  copy: '<rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M5 15H4.5A2.5 2.5 0 0 1 2 12.5v-8A2.5 2.5 0 0 1 4.5 2h8A2.5 2.5 0 0 1 15 4.5V5"/>',
+  send: '<path d="M21.5 2.5 10.6 13.4M21.5 2.5l-7 19-3.9-8.1-8.1-3.9 19-7Z"/>',
+  chat: '<path d="M21 11.5a8.4 8.4 0 0 1-12.6 7.3L3 20l1.3-5.1A8.5 8.5 0 1 1 21 11.5Z"/>',
+  lock: '<rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  unlock: '<rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 7.8-1.2"/>',
+  trash: '<path d="M3 6h18M8 6V4.5A1.5 1.5 0 0 1 9.5 3h5A1.5 1.5 0 0 1 16 4.5V6m2.5 0-.8 13.1a2 2 0 0 1-2 1.9H8.3a2 2 0 0 1-2-1.9L5.5 6M10 11v5M14 11v5"/>',
+  key: '<circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.8-9.8M17 6l3 3M14.5 8.5l2 2"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/>',
+  moon: '<path d="M20.5 14.1A8.5 8.5 0 0 1 9.9 3.5 8.5 8.5 0 1 0 20.5 14.1Z"/>',
+  logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  chevron: '<path d="m9 18 6-6-6-6"/>',
+  clock: '<circle cx="12" cy="12" r="9.5"/><path d="M12 7v5l3 2"/>',
+  trophy: '<path d="M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4.5v1.5A3.5 3.5 0 0 0 7 10.9M17 6h2.5v1.5a3.5 3.5 0 0 1-2.5 3.4M12 14v4M8 21h8M9.5 18h5"/>',
+  sliders: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+  phone: '<rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/>',
+  user: '<circle cx="12" cy="8" r="4.5"/><path d="M20 21a8 8 0 0 0-16 0"/>',
+  eye: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
+  info: '<circle cx="12" cy="12" r="9.5"/><path d="M12 16v-4.5M12 8h.01"/>',
+  flag: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+  link: '<path d="M10 13.5a4.5 4.5 0 0 0 6.4.4l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2M14 10.5a4.5 4.5 0 0 0-6.4-.4l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16v4ZM13.5 6.5l4 4"/>',
+  table: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 10h18M9 10v10"/>',
+  alert: '<path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0ZM12 9v4.5M12 17h.01"/>',
+};
+const icon = (n, cls = "") =>
+  `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
+
+// Logo: um calendário com um "check", em azul.
+const logoMark = (cls = "") => `<svg class="logo ${cls}" viewBox="0 0 40 40" aria-hidden="true">
+  <defs><linearGradient id="lg-${cls || "x"}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b8cff"/><stop offset="1" stop-color="#0b3fa8"/></linearGradient></defs>
+  <rect x="3" y="6" width="34" height="31" rx="10" fill="url(#lg-${cls || "x"})"/>
+  <rect x="11" y="2.5" width="4" height="8" rx="2" fill="#0b3fa8"/><rect x="25" y="2.5" width="4" height="8" rx="2" fill="#0b3fa8"/>
+  <path d="M13 22.5l5 5 9.5-10" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+const wordmark = () => `<span class="wordmark">Bora<b>Marcar</b></span>`;
+
+// ---------- tema ----------
+function currentTheme() {
+  const t = document.documentElement.dataset.theme;
+  if (t) return t;
+  return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t === "dark" ? "#0b1220" : "#f4f6fb");
+}
+try { const saved = localStorage.getItem("bm-theme"); if (saved) applyTheme(saved); } catch {}
+const themeBtn = () => `<button class="icon-btn" data-act="theme" aria-label="${currentTheme() === "dark" ? "Usar tema claro" : "Usar tema escuro"}" title="Trocar tema">${icon(currentTheme() === "dark" ? "sun" : "moon")}</button>`;
+
+const initials = (name) => String(name || "?").trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+
 // ---------- telas ----------
 function header() {
   return `<header class="top">
-    <a href="${location.pathname}" class="brand" data-act="home">🎉 Bora Marcar</a>
-    ${user && profile?.name ? `<div class="who"><span>${esc(profile.name)}</span><button class="link" data-act="logout">Sair</button></div>` : ""}
+    <a href="${location.pathname}" class="brand" data-act="home" aria-label="Início">${logoMark("sm")}${wordmark()}</a>
+    <div class="top-actions">
+      ${themeBtn()}
+      ${user && profile?.name ? `<button class="avatar" data-act="logout" title="Sair (${esc(profile.name)})" aria-label="Sair">${esc(initials(profile.name))}</button>` : ""}
+    </div>
   </header>`;
 }
 
-function renderShell(inner) {
-  app.innerHTML = `${header()}<main>${inner}</main>${api?.isDemo ? `<p class="demo-banner">Modo demonstração: os dados ficam só neste navegador. Código de login: <b>123456</b>.</p>` : ""}`;
+function renderShell(inner, opts = {}) {
+  app.innerHTML = `${opts.bare ? "" : header()}<main class="${opts.bare ? "bare" : ""}">${inner}</main>${api?.isDemo ? `<p class="demo-banner">${icon("info")} Modo demonstração: os dados ficam só neste navegador. Código de login: <b>123456</b>.</p>` : ""}`;
+}
+
+function field(label, iconName, input) {
+  return `<label class="field"><span class="field-label">${label}</span><span class="input-wrap">${icon(iconName)}${input}</span></label>`;
 }
 
 function renderLogin(eventId) {
   const intro = eventId
-    ? "Você foi convidado para escolher a data da confra. Entre com seu telefone para marcar suas datas."
-    : "Cada pessoa marca as datas em que pode (ou não pode) ir, e o sistema encontra o dia em que mais gente consegue participar.";
+    ? "Você foi convidado para escolher a data do encontro. Entre para marcar seus dias."
+    : "Cada pessoa marca os dias em que pode ou não pode ir. A gente encontra a data em que mais gente consegue.";
   let form;
   if (api.authMode === "simples") {
-    form = `<form id="f-simple" class="card stack">
-      <label>Seu nome<input name="name" required maxlength="40" autocomplete="name" placeholder="Como o grupo te conhece"></label>
-      <label>Seu telefone (WhatsApp)<input name="phone" type="tel" inputmode="tel" required placeholder="(11) 98765-4321" autocomplete="tel"></label>
-      <button class="btn primary" type="submit">Entrar</button>
+    form = `<form id="f-simple" class="sheet stack">
+      <div><h2>Entrar</h2><p class="muted">Sem senha e sem cadastro.</p></div>
+      ${field("Seu nome", "user", `<input name="name" required maxlength="40" autocomplete="name" placeholder="Como o grupo te conhece">`)}
+      ${field("Seu telefone (WhatsApp)", "phone", `<input name="phone" type="tel" inputmode="tel" required placeholder="(11) 98765-4321" autocomplete="tel">`)}
+      <button class="btn primary block" type="submit">Entrar ${icon("arrow")}</button>
     </form>`;
   } else if (login.step === "phone") {
-    form = `<form id="f-phone" class="card stack">
-      <label>Seu telefone<input name="phone" type="tel" inputmode="tel" required placeholder="(11) 98765-4321" autocomplete="tel" value="${esc(login.phoneRaw)}"></label>
-      <p class="hint">Você vai receber um código por SMS para entrar.</p>
-      <button class="btn primary" type="submit">Receber código</button>
+    form = `<form id="f-phone" class="sheet stack">
+      <div><h2>Entrar</h2><p class="muted">Você vai receber um código por SMS.</p></div>
+      ${field("Seu telefone", "phone", `<input name="phone" type="tel" inputmode="tel" required placeholder="(11) 98765-4321" autocomplete="tel" value="${esc(login.phoneRaw)}">`)}
+      <button class="btn primary block" type="submit">Receber código ${icon("arrow")}</button>
     </form>`;
   } else {
-    form = `<form id="f-code" class="card stack">
-      <p>Enviamos um código por SMS para <b>${esc(fmtPhone(login.phone))}</b>.</p>
-      <label>Código de 6 dígitos<input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required pattern="[0-9]{6}" class="code-input"></label>
-      <button class="btn primary" type="submit">Entrar</button>
+    form = `<form id="f-code" class="sheet stack">
+      <div><h2>Digite o código</h2><p class="muted">Enviamos um SMS para <b>${esc(fmtPhone(login.phone))}</b>.</p></div>
+      <input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required pattern="[0-9]{6}" class="code-input" aria-label="Código de 6 dígitos">
+      <button class="btn primary block" type="submit">Entrar ${icon("arrow")}</button>
       <button type="button" class="link" data-act="change-phone">Trocar número ou reenviar</button>
     </form>`;
   }
-  renderShell(`<section class="hero"><h1>Qual o melhor dia pra confra?</h1><p class="lead">${intro}</p></section>${form}`);
-  app.querySelector("input")?.focus();
+  renderShell(`
+    <section class="splash">
+      <div class="splash-top">${themeBtn()}</div>
+      <div class="splash-brand">${logoMark("lg")}<h1>${wordmark()}</h1><p>${intro}</p></div>
+    </section>
+    ${form}`, { bare: true });
 }
 
 function renderProfile() {
   renderShell(`<form id="f-profile" class="card stack">
-    <h2>Como você quer ser chamado?</h2>
-    <p class="hint">Seu nome aparece para o organizador junto com as suas datas.</p>
-    <label>Seu nome<input name="name" required maxlength="40" autocomplete="name" value="${esc(profile?.name || "")}"></label>
-    <button class="btn primary" type="submit">Continuar</button>
+    <div><h2>Como você quer ser chamado?</h2><p class="muted">Seu nome aparece junto com as suas datas.</p></div>
+    ${field("Seu nome", "user", `<input name="name" required maxlength="40" autocomplete="name" value="${esc(profile?.name || "")}">`)}
+    <button class="btn primary block" type="submit">Continuar ${icon("arrow")}</button>
   </form>`);
   app.querySelector("input")?.focus();
 }
 
+let homeCreateOpen = false;
 async function renderHome() {
   renderShell(`<div class="loading">Carregando…</div>`);
   let events = [];
   try { events = await api.listMyEvents(user.uid); } catch (e) { showError(e); }
   if (currentEventId() || !user) return;
   events.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  const first = String(profile?.name || "").split(/\s+/)[0];
+  const greet = `<section class="greet"><h1>Olá, ${esc(first)}</h1><p class="muted">Qual encontro vamos marcar?</p></section>`;
   const list = events.length
-    ? `<ul class="ev-list">${events.map((ev) => `<li><a href="?e=${esc(ev.id)}" data-act="open" data-id="${esc(ev.id)}">
-        <b>${esc(ev.name)}</b>
-        <span>${fmtShort(ev.start)} a ${fmtShort(ev.end)}${ev.finalDate ? ` · data: ${fmtShort(ev.finalDate)}` : ev.closed ? " · encerrado" : ""}</span>
-      </a></li>`).join("")}</ul>`
-    : `<p class="muted">Você ainda não criou nenhum evento. Se recebeu um link no grupo, é só abrir o link.</p>`;
+    ? `<div class="ev-list">${events.map(eventCard).join("")}</div>`
+    : `<div class="empty card">${icon("calendar", "lg")}<p><b>Nenhum evento ainda</b></p><p class="muted">Crie um evento e mande o link no grupo. Se você recebeu um link, é só abrir.</p></div>`;
   if (!canCreate()) {
-    const mine = events.length ? `<section class="stack"><h2>Meus eventos</h2>${list}</section>` : "";
-    return renderShell(`${mine}<div class="card stack"><h2>Abra o link do grupo</h2><p>Para marcar suas datas, toque no link do evento que o organizador mandou no grupo do WhatsApp.</p></div>`);
+    return renderShell(`${greet}${events.length ? `<div class="section-head"><h2>Seus eventos</h2></div>${list}` : ""}
+      <div class="card stack"><h3 class="card-title">${icon("link")} Abra o link do grupo</h3><p class="muted">Para marcar suas datas, toque no link do evento enviado no grupo do WhatsApp.</p></div>`);
   }
-  renderShell(`<section class="stack"><h2>Meus eventos</h2>${list}</section>${createForm()}`);
+  const showForm = homeCreateOpen || !events.length;
+  renderShell(`${greet}
+    <div class="section-head"><h2>Seus eventos</h2>${events.length ? `<span class="count">${events.length}</span>` : ""}</div>
+    ${list}
+    ${showForm ? createForm() : `<button class="btn primary block" data-act="new-event">${icon("plus")} Novo evento</button>`}`);
+}
+
+function eventCard(ev) {
+  const status = ev.finalDate ? `Data: ${fmtShort(ev.finalDate)}` : ev.closed ? "Encerrado" : "Votação aberta";
+  return `<a class="ev-card" href="?e=${esc(ev.id)}" data-act="open" data-id="${esc(ev.id)}">
+    <span class="pill glass">${status}</span>
+    <span class="ev-card-body">
+      <b>${esc(ev.name)}</b>
+      <span>${icon("calendar")} ${fmtShort(ev.start)} a ${fmtShort(ev.end)}</span>
+    </span>
+    <span class="ev-card-go">${icon("chevron")}</span>
+  </a>`;
 }
 
 function createForm() {
@@ -262,19 +352,19 @@ function createForm() {
   t.setDate(t.getDate() + 1);
   const end = new Date(t.getFullYear(), 11, 31);
   return `<form id="f-create" class="card stack">
-    <h2>Criar novo evento</h2>
-    <label>Nome do evento<input name="name" required maxlength="60" placeholder="Confra de fim de ano ${t.getFullYear()}"></label>
-    <label>Descrição (opcional)<textarea name="desc" rows="2" maxlength="300" placeholder="Local, ideias, valor…"></textarea></label>
+    <h3 class="card-title">${icon("plus")} Novo evento</h3>
+    ${field("Nome do evento", "edit", `<input name="name" required maxlength="60" placeholder="Confra de fim de ano ${t.getFullYear()}">`)}
+    <label class="field"><span class="field-label">Descrição (opcional)</span><textarea name="desc" rows="2" maxlength="300" placeholder="Local, ideias, valor…"></textarea></label>
     <div class="row">
-      <label>De<input type="date" name="start" required value="${toISO(t)}"></label>
-      <label>Até<input type="date" name="end" required value="${toISO(end)}"></label>
+      ${field("De", "calendar", `<input type="date" name="start" required value="${toISO(t)}">`)}
+      ${field("Até", "calendar", `<input type="date" name="end" required value="${toISO(end)}">`)}
     </div>
     <fieldset>
-      <legend>Dias da semana possíveis</legend>
+      <legend class="field-label">Dias da semana possíveis</legend>
       <div class="chips">${WD_NAMES.map((n, i) => `<label class="chip"><input type="checkbox" name="wd" value="${i}" ${i === 0 || i === 6 ? "checked" : ""}><span>${n}</span></label>`).join("")}</div>
     </fieldset>
-    <label class="check"><input type="checkbox" name="public" checked> Participantes podem ver o resultado parcial</label>
-    <button class="btn primary" type="submit">Criar evento</button>
+    <label class="switch"><input type="checkbox" name="public" checked><span class="track"></span> Participantes podem ver o resultado parcial</label>
+    <button class="btn primary block" type="submit">Criar evento ${icon("arrow")}</button>
   </form>`;
 }
 
@@ -282,10 +372,10 @@ function renderEvent() {
   if (!page.loaded) return;
   const ev = page.ev;
   if (!ev) {
-    return renderShell(`<div class="card stack"><h2>Evento não encontrado</h2><p>${api.isDemo
-      ? "O site ainda está em modo demonstração, então os eventos ficam salvos só no aparelho de quem criou. O organizador precisa configurar o Firebase para o link funcionar para todos."
-      : "Confira se o link está completo ou peça o link de novo ao organizador. Se o evento foi apagado, peça o link novo."}</p>
-      ${canCreate() ? `<button class="btn primary" data-act="home">Ir para meus eventos</button>` : ""}</div>`);
+    return renderShell(`<div class="empty card">${icon("alert", "lg")}<p><b>Evento não encontrado</b></p><p class="muted">${api.isDemo
+      ? "O site está em modo demonstração, então os eventos ficam salvos só no aparelho de quem criou."
+      : "Confira se o link está completo ou peça o link de novo ao organizador. O evento pode ter sido apagado."}</p>
+      <button class="btn" data-act="home">Ir para o início</button></div>`);
   }
   const isAdmin = isEventAdmin(ev);
   if (isAdmin) { startAdmin(ev); migrateOldPhones(); }
@@ -296,16 +386,27 @@ function renderEvent() {
   if (canSee) tabs.push(["resultado", "Resultado"]);
   if (isAdmin) tabs.push(["admin", "Gerenciar"]);
   if (!tabs.some((t) => t[0] === page.tab)) page.tab = "minhas";
+  const nDates = candidateDates(ev).length;
 
   const body = page.tab === "resultado" ? tabResults(ev) : page.tab === "admin" ? tabAdmin(ev) : tabMine(ev, mine);
   renderShell(`
-    ${isAdmin ? `<a href="${location.pathname}" class="back" data-act="home">← Meus eventos</a>` : ""}
-    <section class="ev-head">
-      <h1>${esc(ev.name)}</h1>
-      ${ev.desc ? `<p>${esc(ev.desc)}</p>` : ""}
-      <p class="muted">Período: ${fmtShort(ev.start)} a ${fmtShort(ev.end)} · ${plural(page.responses.length, "resposta", "respostas")}${ev.closed ? " · votação encerrada" : ""}</p>
+    <section class="hero">
+      <div class="hero-bar">
+        <a href="${location.pathname}" class="glass-btn" data-act="home" aria-label="Voltar">${icon("back")}</a>
+        ${isAdmin ? `<button class="glass-btn" data-act="tab" data-tab="admin" aria-label="Convidar o grupo">${icon("share")}</button>` : ""}
+      </div>
+      <div class="hero-info glass">
+        <h1>${esc(ev.name)}</h1>
+        ${ev.desc ? `<p class="hero-desc">${esc(ev.desc)}</p>` : ""}
+        <p class="hero-meta">${icon("calendar")} ${fmtShort(ev.start)} a ${fmtShort(ev.end)}</p>
+      </div>
     </section>
-    ${ev.finalDate ? `<div class="final"><span>Data definida 🎉</span><strong>${fmtLong(ev.finalDate)}</strong></div>` : ""}
+    <div class="stats">
+      <span class="stat"><span class="stat-ic">${icon("users")}</span>${plural(page.responses.length, "resposta", "respostas")}</span>
+      <span class="stat"><span class="stat-ic">${icon("calendar")}</span>${plural(nDates, "dia", "dias")}</span>
+      <span class="stat"><span class="stat-ic">${icon(ev.closed ? "lock" : "unlock")}</span>${ev.closed ? "Encerrada" : "Aberta"}</span>
+    </div>
+    ${ev.finalDate ? `<div class="final">${icon("flag")}<div><span>Data definida</span><strong>${fmtLong(ev.finalDate)}</strong></div></div>` : ""}
     ${tabs.length > 1 ? `<nav class="tabs" role="tablist">${tabs.map(([k, l]) => `<button role="tab" aria-selected="${page.tab === k}" class="${page.tab === k ? "on" : ""}" data-act="tab" data-tab="${k}">${l}</button>`).join("")}</nav>` : ""}
     ${body}
     ${isAdmin ? "" : claimBox()}
@@ -313,12 +414,12 @@ function renderEvent() {
 }
 
 function claimBox() {
-  if (!page.claimOpen) return `<p class="claim-link"><button class="link" data-act="claim-open">Sou o organizador deste evento</button></p>`;
+  if (!page.claimOpen) return `<p class="claim-link"><button class="link" data-act="claim-open">${icon("key")} Sou o organizador deste evento</button></p>`;
   return `<form id="f-claim" class="card stack">
-    <h3>Entrar como organizador</h3>
-    <p class="hint">Digite o código do organizador. Ele aparece na aba Gerenciar do aparelho onde o evento foi criado.</p>
-    <label>Código<input name="code" required maxlength="12" autocomplete="off" autocapitalize="characters" class="code-input"></label>
-    <button class="btn primary" type="submit">Entrar</button>
+    <h3 class="card-title">${icon("key")} Entrar como organizador</h3>
+    <p class="muted">Digite o código do organizador. Ele aparece na aba Gerenciar do aparelho onde o evento foi criado.</p>
+    <input name="code" required maxlength="12" autocomplete="off" autocapitalize="characters" class="code-input" aria-label="Código do organizador">
+    <button class="btn primary block" type="submit">Entrar ${icon("arrow")}</button>
   </form>`;
 }
 
@@ -326,27 +427,29 @@ function tabMine(ev, mine) {
   const d = page.draft;
   if (ev.closed) {
     return `<section class="stack">
-      <div class="card"><p>A votação foi encerrada pelo organizador.${mine ? " Estas foram as suas respostas:" : ""}</p></div>
-      ${mine ? `${mySummary(ev, mine)}${calendar(ev, "readonly")}` : ""}
+      <div class="note">${icon("lock")}<p>A votação foi encerrada pelo organizador.${mine ? " Estas foram as suas respostas." : ""}</p></div>
+      ${mine ? `${mySummary(ev, mine)}<div class="card">${calendar(ev, "readonly")}</div>` : ""}
     </section>`;
   }
   const valid = new Set(candidateDates(ev));
   const n = [...d.dates].filter((x) => valid.has(x)).length;
   const summary = d.mode === "can"
-    ? (n ? `Você pode em ${plural(n, "dia", "dias")}` : "Nenhum dia marcado")
-    : (n ? `Você não pode em ${plural(n, "dia", "dias")}` : "Nenhum dia marcado: você pode em todos");
+    ? (n ? `Você pode em <b>${plural(n, "dia", "dias")}</b>` : "Nenhum dia marcado")
+    : (n ? `Você não pode em <b>${plural(n, "dia", "dias")}</b>` : "Nenhum dia marcado: você pode em todos");
   return `<section class="stack">
-    <div class="mode">
-      <button class="mode-btn ${d.mode === "can" ? "on can" : ""}" data-act="mode" data-mode="can" aria-pressed="${d.mode === "can"}" ${n && d.mode !== "can" ? "disabled" : ""}>✅ Marcar os dias que <b>posso</b></button>
-      <button class="mode-btn ${d.mode === "cannot" ? "on cannot" : ""}" data-act="mode" data-mode="cannot" aria-pressed="${d.mode === "cannot"}" ${n && d.mode !== "cannot" ? "disabled" : ""}>🚫 Marcar os dias que <b>não posso</b></button>
+    <div class="segmented" role="radiogroup" aria-label="Como marcar">
+      <button class="seg ${d.mode === "can" ? "on can" : ""}" data-act="mode" data-mode="can" role="radio" aria-checked="${d.mode === "can"}" ${n && d.mode !== "can" ? "disabled" : ""}>${icon("calCheck")} Dias que posso</button>
+      <button class="seg ${d.mode === "cannot" ? "on cannot" : ""}" data-act="mode" data-mode="cannot" role="radio" aria-checked="${d.mode === "cannot"}" ${n && d.mode !== "cannot" ? "disabled" : ""}>${icon("calX")} Dias que não posso</button>
     </div>
-    <p class="hint">${d.mode === "can" ? "Toque nos dias em que você <b>pode</b> ir." : "Toque nos dias em que você <b>não pode</b> ir. Os outros dias contam como livres."} Dias em cinza não estão em votação.${n ? ` Para trocar entre "posso" e "não posso", toque em <b>limpar</b> primeiro.` : ""}</p>
-    ${calendar(ev, "pick")}
+    <p class="hint">${d.mode === "can" ? "Toque nos dias em que você <b>pode</b> ir." : "Toque nos dias em que você <b>não pode</b> ir. Os outros contam como livres."}${n ? " Para trocar de opção, limpe a seleção primeiro." : ""}</p>
+    <div class="card">${calendar(ev, "pick")}
+      <div class="legend"><span><i class="lg-on ${d.mode}"></i>${d.mode === "can" ? "Posso" : "Não posso"}</span><span><i class="lg-free"></i>Em votação</span><span><i class="lg-off"></i>Fora da votação</span></div>
+    </div>
     <div class="savebar">
-      <span>${summary}${n ? ` · <button class="link" data-act="clear">limpar</button>` : ""}</span>
-      <button class="btn primary" data-act="save" ${!page.dirty && mine ? "disabled" : ""}>${mine ? (page.dirty ? "Salvar alterações" : "Salvo ✓") : "Salvar minhas datas"}</button>
+      <span class="savebar-text">${summary}${n ? `<button class="link" data-act="clear">Limpar</button>` : ""}</span>
+      <button class="btn primary" data-act="save" ${!page.dirty && mine ? "disabled" : ""}>${mine ? (page.dirty ? `Salvar ${icon("send")}` : `Salvo ${icon("check")}`) : `Salvar ${icon("send")}`}</button>
     </div>
-    ${mine && !page.dirty ? `<p class="ok">Suas datas estão salvas. Você pode alterar até o organizador encerrar a votação.</p>${mySummary(ev, mine)}` : ""}
+    ${mine && !page.dirty ? mySummary(ev, mine) : ""}
   </section>`;
 }
 
@@ -360,7 +463,7 @@ function calendar(ev, kind, heat) {
   while (y < end.getFullYear() || (y === end.getFullYear() && m <= end.getMonth())) {
     const first = new Date(y, m, 1);
     const days = new Date(y, m + 1, 0).getDate();
-    html += `<div class="month"><h3>${cap(first.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }))}</h3><div class="grid">`;
+    html += `<div class="month"><h3>${cap(first.toLocaleDateString("pt-BR", { month: "long" }))} <span>${y}</span></h3><div class="grid">`;
     html += WD_SHORT.map((w) => `<div class="wd">${w}</div>`).join("");
     for (let i = 0; i < first.getDay(); i++) html += `<div></div>`;
     for (let day = 1; day <= days; day++) {
@@ -386,39 +489,38 @@ function calendar(ev, kind, heat) {
 
 function tabResults(ev) {
   const rs = page.responses;
-  if (!rs.length) return `<div class="card"><p>Ninguém respondeu ainda. Compartilhe o link no grupo!</p></div>`;
+  if (!rs.length) return `<div class="empty card">${icon("users", "lg")}<p><b>Ninguém respondeu ainda</b></p><p class="muted">Compartilhe o link no grupo.</p></div>`;
   const rank = computeRanking(ev, rs);
-  if (!rank.length) return `<div class="card"><p>Não há datas em votação neste período.</p></div>`;
+  if (!rank.length) return `<div class="empty card"><p>Não há datas em votação neste período.</p></div>`;
   const total = rs.length;
   const max = rank[0].yes.length;
   const best = rank.filter((r) => r.yes.length === max);
   const heat = new Map(rank.map((r) => [r.date, { yes: r.yes.length, total, best: max > 0 && r.yes.length === max }]));
 
   let headline;
-  if (max === 0) headline = `<p>Nenhuma data funciona para ninguém ainda. Peça para o grupo revisar as datas.</p>`;
-  else if (best.length === 1) headline = `<p class="kicker">Melhor data até agora</p><p class="big">${fmtLong(best[0].date)}</p><p>${max === total ? "Todo mundo pode! 🎉" : `${max} de ${total} pessoas podem`}</p>`;
-  else headline = `<p class="kicker">Empate entre ${best.length} datas</p><p class="big-list">${best.slice(0, 6).map((b) => fmtLong(b.date)).join("<br>")}${best.length > 6 ? `<br>e mais ${best.length - 6}…` : ""}</p><p>${max === total ? "Todo mundo pode em qualquer uma delas! 🎉" : `${max} de ${total} pessoas podem em cada uma`}</p>`;
+  if (max === 0) headline = `<p>Nenhuma data funciona ainda. Peça para o grupo revisar as datas.</p>`;
+  else if (best.length === 1) headline = `<p class="kicker">Melhor data até agora</p><p class="big">${fmtLong(best[0].date)}</p><p class="sub">${max === total ? "Todo mundo pode" : `${max} de ${total} pessoas podem`}</p>`;
+  else headline = `<p class="kicker">Empate entre ${best.length} datas</p><p class="big-list">${best.slice(0, 6).map((b) => fmtLong(b.date)).join("<br>")}${best.length > 6 ? `<br>e mais ${best.length - 6}` : ""}</p><p class="sub">${max === total ? "Todo mundo pode em qualquer uma" : `${max} de ${total} pessoas podem em cada uma`}</p>`;
 
   const shown = page.showAll ? rank : rank.slice(0, 8);
   const items = shown.map((r, i) => {
     const pct = Math.round((r.yes.length / total) * 100);
     return `<li class="${r.yes.length === max && max > 0 ? "top" : ""}">
-      <div class="rk-top"><span class="pos">${i + 1}º</span><b>${fmtLong(r.date)}</b><span class="cnt">${r.yes.length}/${total}</span></div>
+      <div class="rk-top"><span class="pos">${i + 1}</span><b>${fmtLong(r.date)}</b><span class="cnt">${r.yes.length}<small>/${total}</small></span></div>
       <div class="bar"><i style="width:${pct}%"></i></div>
-      ${r.no.length ? `<details><summary>Não podem (${r.no.length})</summary><p>${r.no.map(esc).join(", ")}</p></details>` : `<p class="all">Todos podem</p>`}
+      ${r.no.length ? `<details><summary>Não podem (${r.no.length})</summary><p>${r.no.map(esc).join(", ")}</p></details>` : `<p class="all">${icon("check")} Todos podem</p>`}
     </li>`;
   }).join("");
 
   return `<section class="stack">
-    <div class="card highlight">${headline}</div>
-    <h2>Ranking das datas</h2>
+    <div class="highlight">${icon("trophy", "hl-ic")}<div>${headline}</div></div>
+    <div class="section-head"><h2>Ranking das datas</h2></div>
     <ol class="rank">${items}</ol>
-    ${rank.length > 8 ? `<button class="link" data-act="show-all">${page.showAll ? "Mostrar menos" : `Ver todas as ${rank.length} datas`}</button>` : ""}
-    <h2>Calendário</h2>
-    <p class="hint">Quanto mais escuro, mais gente pode. O número é quantas pessoas podem no dia.</p>
-    ${calendar(ev, "heat", heat)}
-    <h2>Quem já respondeu (${total})</h2>
-    <ul class="people">${rs.slice().sort((a, b) => a.name.localeCompare(b.name)).map((r) => `<li>${esc(r.name)}</li>`).join("")}</ul>
+    ${rank.length > 8 ? `<button class="link center" data-act="show-all">${page.showAll ? "Mostrar menos" : `Ver todas as ${rank.length} datas`}</button>` : ""}
+    <div class="section-head"><h2>Calendário</h2></div>
+    <div class="card">${calendar(ev, "heat", heat)}<p class="hint">Quanto mais forte a cor, mais gente pode. O número é quantas pessoas podem no dia.</p></div>
+    <div class="section-head"><h2>Quem respondeu</h2><span class="count">${total}</span></div>
+    <ul class="people">${rs.slice().sort((a, b) => a.name.localeCompare(b.name)).map((r) => `<li><span class="mini-av">${esc(initials(r.name))}</span>${esc(r.name)}</li>`).join("")}</ul>
   </section>`;
 }
 
@@ -426,9 +528,9 @@ function tabResults(ev) {
 function mySummary(ev, mine) {
   const { can, cannot } = availability(ev, mine);
   return `<div class="card stack mine-summary">
-    <h3>O que você marcou</h3>
-    <p><span class="tag y">Pode</span> ${can.length ? can.map(fmtShort).join(", ") : "nenhum dia"}</p>
-    <p><span class="tag n">Não pode</span> ${cannot.length ? cannot.map(fmtShort).join(", ") : "nenhum dia"}</p>
+    <h3 class="card-title">${icon("eye")} O que você marcou</h3>
+    <p><span class="tag y">${icon("check")} Pode</span> ${can.length ? can.map(fmtShort).join(", ") : "nenhum dia"}</p>
+    <p><span class="tag n">${icon("x")} Não pode</span> ${cannot.length ? cannot.map(fmtShort).join(", ") : "nenhum dia"}</p>
   </div>`;
 }
 
@@ -451,78 +553,81 @@ function adminResponses(ev) {
     <thead><tr><th>Nome</th>${dates.map((d) => `<th><span>${wd(d)}</span>${fmtShort(d)}</th>`).join("")}</tr></thead>
     <tbody>${people.map(({ r, can }) => {
       const c = new Set(can);
-      return `<tr><th>${esc(r.name)}</th>${dates.map((d) => c.has(d) ? `<td class="y" title="Pode">✓</td>` : `<td class="n" title="Não pode">✗</td>`).join("")}</tr>`;
+      return `<tr><th>${esc(r.name)}</th>${dates.map((d) => c.has(d) ? `<td class="y" title="Pode">${icon("check")}</td>` : `<td class="n" title="Não pode">${icon("x")}</td>`).join("")}</tr>`;
     }).join("")}</tbody>
     <tfoot><tr><th>Podem</th>${dates.map((d) => `<td>${people.filter((p) => p.can.includes(d)).length}</td>`).join("")}</tr></tfoot>
   </table></div>`;
-  const list = `<ul class="admin-people">${people.map(({ r, can, cannot }) => `<li>
-    <details>
-      <summary><b>${esc(r.name)}</b><span class="muted">${(page.contacts[r.uid]?.phone || r.phone) ? esc(fmtPhone(page.contacts[r.uid]?.phone || r.phone)) + " · " : ""}marcou os dias que ${r.mode === "can" ? "pode" : "não pode"}</span></summary>
-      <p><span class="tag y">Pode</span> ${can.length ? can.map(fmtShort).join(", ") : "nenhum dia"}</p>
-      <p><span class="tag n">Não pode</span> ${cannot.length ? cannot.map(fmtShort).join(", ") : "nenhum dia"}</p>
-      <button class="link danger" data-act="del-resp" data-uid="${esc(r.uid)}" data-name="${esc(r.name)}">remover resposta</button>
-    </details>
-  </li>`).join("")}</ul>`;
-  return `<p class="hint">✓ pode · ✗ não pode. Arraste a tabela para o lado para ver todas as datas.</p>${table}<p class="hint">Toque no nome para ver as datas de cada pessoa.</p>${list}`;
+  const list = `<ul class="admin-people">${people.map(({ r, can, cannot }) => {
+    const phone = page.contacts[r.uid]?.phone || r.phone;
+    return `<li><details>
+      <summary><span class="mini-av">${esc(initials(r.name))}</span><span class="ap-main"><b>${esc(r.name)}</b><span class="muted">${phone ? esc(fmtPhone(phone)) + " · " : ""}marcou os dias que ${r.mode === "can" ? "pode" : "não pode"}</span></span>${icon("chevron", "chev")}</summary>
+      <div class="ap-body">
+        <p><span class="tag y">${icon("check")} Pode</span> ${can.length ? can.map(fmtShort).join(", ") : "nenhum dia"}</p>
+        <p><span class="tag n">${icon("x")} Não pode</span> ${cannot.length ? cannot.map(fmtShort).join(", ") : "nenhum dia"}</p>
+        <button class="link danger" data-act="del-resp" data-uid="${esc(r.uid)}" data-name="${esc(r.name)}">${icon("trash")} Remover resposta</button>
+      </div>
+    </details></li>`;
+  }).join("")}</ul>`;
+  return `${table}<p class="hint">Arraste a tabela para o lado para ver todas as datas. Toque no nome para ver os detalhes.</p>${list}`;
 }
 
 function shareLink(id) { return `${location.origin}${location.pathname}?e=${encodeURIComponent(id)}`; }
 
 function tabAdmin(ev) {
   const link = shareLink(ev.id);
-  const invite = `🎉 *${ev.name}*\n\nMarque as datas em que você pode (ou não pode) ir à confra. O sistema escolhe o dia em que mais gente consegue ir:\n${link}`;
+  const invite = `*${ev.name}*\n\nMarque os dias em que você pode (ou não pode) ir. O Bora Marcar encontra a data em que mais gente consegue:\n${link}`;
   const rank = page.responses.length ? computeRanking(ev, page.responses) : [];
   const total = page.responses.length;
   const options = (rank.length ? rank.slice(0, 15).map((r) => ({ date: r.date, label: `${fmtLong(r.date)} (${r.yes.length}/${total})` })) : candidateDates(ev).map((d) => ({ date: d, label: fmtLong(d) })));
-  const finalMsg = ev.finalDate ? `🎉 *${ev.name}*\n\nData definida: *${fmtLong(ev.finalDate)}*!\n${link}` : "";
+  const finalMsg = ev.finalDate ? `*${ev.name}*\n\nData definida: *${fmtLong(ev.finalDate)}*\n${link}` : "";
   return `<section class="stack">
-    ${api.isDemo ? `<div class="card stack warn"><h3>O link ainda não funciona para o grupo</h3><p>O site está em modo demonstração: este evento existe só neste aparelho. Configure o Firebase (veja o LEIA-ME) antes de mandar o link.</p></div>` : ""}
+    ${api.isDemo ? `<div class="note warn">${icon("alert")}<p>Modo demonstração: este evento existe só neste aparelho. Configure o Firebase (veja o LEIA-ME) antes de mandar o link.</p></div>` : ""}
     <div class="card stack">
-      <h3>Convidar o grupo</h3>
-      <p class="hint">Envie este link no grupo do WhatsApp. Cada pessoa entra com o telefone e marca as datas.</p>
-      <input readonly value="${esc(link)}" class="linkbox" aria-label="Link do evento">
+      <h3 class="card-title">${icon("share")} Convidar o grupo</h3>
+      <p class="muted">Envie o link no grupo do WhatsApp. Cada pessoa entra e marca os dias.</p>
+      <div class="input-wrap">${icon("link")}<input readonly value="${esc(link)}" class="linkbox" aria-label="Link do evento"></div>
       <div class="row">
-        <button class="btn" data-act="copy" data-text="${esc(link)}">Copiar link</button>
-        <a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(invite)}">Enviar no WhatsApp</a>
+        <button class="btn" data-act="copy" data-text="${esc(link)}">${icon("copy")} Copiar</button>
+        <a class="btn primary" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(invite)}">${icon("chat")} WhatsApp</a>
       </div>
     </div>
     <div class="card stack">
-      <h3>Código do organizador</h3>
+      <h3 class="card-title">${icon("key")} Código do organizador</h3>
       ${page.adminCode === "erro"
-        ? `<p class="hint">O código fica disponível depois que as novas regras de segurança forem publicadas no Firebase.</p>`
-        : `<p class="code-show">${page.adminCode ? esc(page.adminCode) : "…"}</p>`}
-      <p class="hint">Guarde este código. Para gerenciar o evento em outro celular ou computador, abra o link do evento, toque em "Sou o organizador deste evento" e digite o código. Não compartilhe no grupo.</p>
+        ? `<p class="muted">O código fica disponível depois que as novas regras de segurança forem publicadas no Firebase.</p>`
+        : `<p class="code-show">${page.adminCode ? esc(page.adminCode) : "········"}</p>`}
+      <p class="muted">Para gerenciar em outro aparelho, abra o link do evento, toque em "Sou o organizador deste evento" e digite o código. Não compartilhe no grupo.</p>
     </div>
     <div class="card stack">
-      <h3>Votação ${ev.closed ? "encerrada" : "aberta"}</h3>
-      <p class="hint">${ev.closed ? "Ninguém pode alterar as datas agora." : "As pessoas podem marcar e alterar as datas."}</p>
-      <button class="btn" data-act="toggle-closed">${ev.closed ? "Reabrir votação" : "Encerrar votação"}</button>
-      <label class="check"><input type="checkbox" data-act="toggle-public" ${ev.showResults ? "checked" : ""}> Participantes veem o resultado parcial</label>
+      <h3 class="card-title">${icon(ev.closed ? "lock" : "unlock")} Votação ${ev.closed ? "encerrada" : "aberta"}</h3>
+      <p class="muted">${ev.closed ? "Ninguém pode alterar as datas agora." : "As pessoas podem marcar e alterar as datas."}</p>
+      <button class="btn" data-act="toggle-closed">${ev.closed ? `${icon("unlock")} Reabrir votação` : `${icon("lock")} Encerrar votação`}</button>
+      <label class="switch"><input type="checkbox" data-act="toggle-public" ${ev.showResults ? "checked" : ""}><span class="track"></span> Participantes veem o resultado parcial</label>
     </div>
     <div class="card stack">
-      <h3>Dias da semana em votação</h3>
-      <p class="hint">Mudar os dias não apaga nenhuma resposta. O ranking passa a considerar só os dias marcados aqui.</p>
+      <h3 class="card-title">${icon("sliders")} Dias da semana em votação</h3>
+      <p class="muted">Mudar os dias não apaga nenhuma resposta. O ranking passa a considerar só os dias marcados.</p>
       <div class="chips" id="wd-edit">${WD_NAMES.map((n, i) => `<label class="chip"><input type="checkbox" value="${i}" ${(ev.weekdays ?? [0, 1, 2, 3, 4, 5, 6]).includes(i) ? "checked" : ""}><span>${n}</span></label>`).join("")}</div>
-      <button class="btn" data-act="save-wd">Salvar dias</button>
+      <button class="btn" data-act="save-wd">${icon("check")} Salvar dias</button>
     </div>
     <div class="card stack">
-      <h3>Definir a data final</h3>
-      <p class="hint">Ao confirmar, a votação é encerrada e todos veem a data escolhida.</p>
-      <select id="final-sel">${options.map((o) => `<option value="${o.date}" ${o.date === ev.finalDate ? "selected" : ""}>${esc(o.label)}</option>`).join("")}</select>
-      <button class="btn primary" data-act="set-final">Confirmar data</button>
-      ${ev.finalDate ? `<a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(finalMsg)}">Avisar o grupo no WhatsApp</a>
-      <button class="link" data-act="clear-final">Remover data definida</button>` : ""}
+      <h3 class="card-title">${icon("flag")} Definir a data final</h3>
+      <p class="muted">Ao confirmar, a votação é encerrada e todos veem a data escolhida.</p>
+      <div class="select-wrap"><select id="final-sel" aria-label="Data final">${options.map((o) => `<option value="${o.date}" ${o.date === ev.finalDate ? "selected" : ""}>${esc(o.label)}</option>`).join("")}</select>${icon("chevron", "sel-chev")}</div>
+      <button class="btn primary block" data-act="set-final">Confirmar data ${icon("check")}</button>
+      ${ev.finalDate ? `<a class="btn block" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(finalMsg)}">${icon("chat")} Avisar o grupo no WhatsApp</a>
+      <button class="link center" data-act="clear-final">Remover data definida</button>` : ""}
     </div>
     <div class="card stack">
-      <h3>Respostas (${total})</h3>
+      <h3 class="card-title">${icon("table")} Respostas <span class="count">${total}</span></h3>
       ${total ? adminResponses(ev) : `<p class="muted">Nenhuma resposta ainda.</p>`}
     </div>
-    <div class="card stack">
-      <h3>Apagar evento</h3>
-      <p class="hint">Apaga o evento e todas as respostas. O link deixa de funcionar.</p>
-      <button class="btn danger" data-act="del-event">Apagar este evento</button>
+    <div class="card stack danger-zone">
+      <h3 class="card-title">${icon("trash")} Apagar evento</h3>
+      <p class="muted">Apaga o evento e todas as respostas. O link deixa de funcionar.</p>
+      <button class="btn danger" data-act="del-event">${icon("trash")} Apagar este evento</button>
     </div>
-    ${api.isDemo ? `<div class="card stack"><h3>Testar o cálculo</h3><p class="hint">Só no modo demonstração: adiciona respostas fictícias.</p><button class="btn" data-act="fake">Adicionar 8 participantes fictícios</button></div>` : ""}
+    ${api.isDemo ? `<div class="card stack"><h3 class="card-title">${icon("users")} Testar o cálculo</h3><p class="muted">Só no modo demonstração: adiciona respostas fictícias.</p><button class="btn" data-act="fake">${icon("plus")} Adicionar 8 participantes</button></div>` : ""}
   </section>`;
 }
 
@@ -598,6 +703,7 @@ const forms = {
       if (e?.code === "permission-denied") return toast("Não foi possível criar o evento. Cada pessoa pode criar no máximo 30 eventos.", 6000);
       throw e;
     }
+    homeCreateOpen = false;
     go(id);
     page.tab = "admin";
     renderEvent();
@@ -611,11 +717,11 @@ app.addEventListener("submit", async (e) => {
   const h = forms[f.id];
   if (!h) return;
   const btn = f.querySelector("button[type=submit]");
-  const label = btn?.textContent;
+  const label = btn?.innerHTML;
   if (btn) { btn.disabled = true; btn.textContent = "Aguarde…"; }
   try { await h(new FormData(f)); }
   catch (err) { showError(err); }
-  finally { if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = label; } }
+  finally { if (btn && btn.isConnected) { btn.disabled = false; btn.innerHTML = label; } }
 });
 
 const actions = {
@@ -653,10 +759,17 @@ const actions = {
     page.dirty = false;
     try {
       await api.saveResponse(ev.id, user.uid, data, { name: profile.name, phone: profile.phone || user.phone || null });
-      toast("Datas salvas! Obrigado 🎉");
+      toast("Datas salvas. Obrigado!");
       if (ev.showResults || isEventAdmin(ev)) { page.tab = "resultado"; renderEvent(); window.scrollTo({ top: 0 }); }
     } catch (e) { page.dirty = true; renderEvent(); throw e; }
   },
+  theme() {
+    const t = currentTheme() === "dark" ? "light" : "dark";
+    applyTheme(t);
+    try { localStorage.setItem("bm-theme", t); } catch {}
+    app.querySelectorAll('[data-act="theme"]').forEach((b) => { b.outerHTML = themeBtn(); });
+  },
+  "new-event"() { homeCreateOpen = true; renderHome(); },
   "claim-open"() { page.claimOpen = true; renderEvent(); app.querySelector("#f-claim input")?.focus(); },
   "show-all"() { page.showAll = !page.showAll; renderEvent(); },
   async copy(el) {
