@@ -340,7 +340,7 @@ summary { cursor: pointer; font-weight: 600; }
 .matrix thead th { font-weight: 700; font-size: .74rem; color: var(--muted); }
 .matrix thead th span { display: block; }
 .matrix tbody th, .matrix tfoot th, .matrix thead th:first-child {
-  position: sticky; left: 0; background: var(--surface); text-align: left; max-width: 120px; overflow: hidden; text-overflow: ellipsis; font-weight: 700;
+  position: sticky; left: 0; z-index: 2; background: var(--surface); text-align: left; max-width: 120px; overflow: hidden; text-overflow: ellipsis; font-weight: 700;
 }
 .matrix td .ic { width: 16px; height: 16px; stroke-width: 2.6; }
 .matrix td.y { color: var(--can); }
