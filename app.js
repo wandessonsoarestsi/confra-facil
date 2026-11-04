@@ -330,7 +330,7 @@ async function renderAccount() {
     ? `<ul class="code-list">${events.map((ev, i) => `<li><span><b>${esc(ev.name)}</b><span class="muted">${fmtShort(ev.start)} a ${fmtShort(ev.end)}</span></span><code>${codes[i] ? esc(codes[i]) : "sem código"}</code></li>`).join("")}</ul>`
     : `<p class="muted">Você não organiza nenhum evento neste aparelho.</p>`;
   renderShell(`
-    <section class="greet"><h1>Sua conta</h1><p class="muted">${esc(profile?.name || "")}${profile?.phone ? " · " + esc(fmtPhone(profile.phone)) : ""}</p></section>
+    <section class="greet"><h1>Sua conta</h1><p class="muted">${esc(profile?.name || "")}${profile?.phone ? " · " + esc(fmtPhone(profile.phone)) : ""}</p><p class="muted uid">ID da conta: <code>${esc(user.uid)}</code></p></section>
     <div class="card stack">
       <h3 class="card-title">${icon("key")} Seus códigos de organizador</h3>
       <p class="muted">Anote estes códigos. Com eles você volta a gerenciar seus eventos em qualquer aparelho.</p>

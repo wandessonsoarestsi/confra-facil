@@ -375,3 +375,5 @@ summary { cursor: pointer; font-weight: 600; }
 .code-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: var(--r-md); background: var(--surface-2); }
 .code-list li > span { display: grid; min-width: 0; }
 .code-list code { font: 800 1rem var(--font); letter-spacing: .14em; white-space: nowrap; }
+.uid { font-size: .78rem; overflow-wrap: anywhere; }
+.uid code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; user-select: all; }
