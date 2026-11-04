@@ -455,8 +455,21 @@ function claimBox() {
   </form>`;
 }
 
+// Resposta antiga da mesma pessoa (mesmo telefone), feita com outro acesso.
+// Só o organizador consegue ver os telefones para fazer essa ligação.
+function oldOwnResponse() {
+  const myPhone = normalizePhone(profile?.phone || user?.phone || "");
+  if (!myPhone || myPhone === CONFIG.defaultCountryCode) return null;
+  return page.responses.find((r) => {
+    if (r.uid === user.uid) return false;
+    const ph = r.phone || page.contacts[r.uid]?.phone;
+    return ph && normalizePhone(ph) === myPhone;
+  }) || null;
+}
+
 function tabMine(ev, mine) {
   const d = page.draft;
+  const old = !mine && !page.dirty ? oldOwnResponse() : null;
   if (ev.closed) {
     return `<section class="stack">
       <div class="note">${icon("lock")}<p>A votação foi encerrada pelo organizador.${mine ? " Estas foram as suas respostas." : ""}</p></div>
@@ -469,6 +482,7 @@ function tabMine(ev, mine) {
     ? (n ? `Você pode em <b>${plural(n, "dia", "dias")}</b>` : "Nenhum dia marcado")
     : (n ? `Você não pode em <b>${plural(n, "dia", "dias")}</b>` : "Nenhum dia marcado: você pode em todos");
   return `<section class="stack">
+    ${old ? `<div class="note">${icon("info")}<div class="stack" style="gap:10px"><p>Encontramos datas que você marcou com outro acesso (${esc(old.name)}, ${plural(availability(ev, old)[old.mode === "can" ? "can" : "cannot"].length, "dia", "dias")}).</p><button class="btn primary" data-act="import-old" data-uid="${esc(old.uid)}">${icon("check")} Usar essas datas</button></div></div>` : ""}
     <div class="segmented" role="radiogroup" aria-label="Como marcar">
       <button class="seg ${d.mode === "can" ? "on can" : ""}" data-act="mode" data-mode="can" role="radio" aria-checked="${d.mode === "can"}" ${n && d.mode !== "can" ? "disabled" : ""}>${icon("calCheck")} Dias que posso</button>
       <button class="seg ${d.mode === "cannot" ? "on cannot" : ""}" data-act="mode" data-mode="cannot" role="radio" aria-checked="${d.mode === "cannot"}" ${n && d.mode !== "cannot" ? "disabled" : ""}>${icon("calX")} Dias que não posso</button>
@@ -782,6 +796,15 @@ const actions = {
     window.scrollTo({ top: y });
   },
   clear() { page.draft.dates.clear(); page.dirty = true; renderEvent(); },
+  "import-old"(el) {
+    const old = page.responses.find((r) => r.uid === el.dataset.uid);
+    if (!old) return;
+    page.draft = { mode: old.mode, dates: new Set(old.dates || []) };
+    page.importedFrom = old.uid;
+    page.dirty = true;
+    renderEvent();
+    toast("Datas carregadas. Toque em Salvar para confirmar.");
+  },
   async save() {
     const ev = page.ev;
     const data = {
@@ -792,6 +815,10 @@ const actions = {
     page.dirty = false;
     try {
       await api.saveResponse(ev.id, user.uid, data, { name: profile.name, phone: profile.phone || user.phone || null });
+      if (page.importedFrom && isEventAdmin(ev)) {
+        await api.deleteResponse(ev.id, page.importedFrom).catch((e) => console.error(e));
+        page.importedFrom = null;
+      }
       toast("Datas salvas. Obrigado!");
       if (ev.showResults || isEventAdmin(ev)) { page.tab = "resultado"; renderEvent(); window.scrollTo({ top: 0 }); }
     } catch (e) { page.dirty = true; renderEvent(); throw e; }
