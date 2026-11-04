@@ -397,3 +397,4 @@ summary { cursor: pointer; font-weight: 600; }
 .dchip.y { background: var(--can-soft); color: var(--can); }
 .dchip.n { background: var(--cannot-soft); color: var(--cannot); }
 .ap-body .avail { padding-top: 4px; }
+.hint.center { text-align: center; margin-top: -4px; }

@@ -1,4 +1,5 @@
 import { CONFIG } from "./config.js";
+import { makeFinalImage } from "./share-image.js";
 
 const app = document.getElementById("app");
 const WD_SHORT = ["D", "S", "T", "Q", "Q", "S", "S"];
@@ -654,6 +655,7 @@ function tabAdmin(ev) {
   const total = page.responses.length;
   const options = (rank.length ? rank.slice(0, 15).map((r) => ({ date: r.date, label: `${fmtLong(r.date)} (${r.yes.length}/${total})` })) : candidateDates(ev).map((d) => ({ date: d, label: fmtLong(d) })));
   const finalMsg = ev.finalDate ? `*${ev.name}*\n\nData definida: *${fmtLong(ev.finalDate)}*\n${link}` : "";
+  if (ev.finalDate) setTimeout(() => finalImage(ev).catch(() => {}), 0);
   return `<section class="stack">
     ${api.isDemo ? `<div class="note warn">${icon("alert")}<p>Modo demonstração: este evento existe só neste aparelho. Configure o Firebase (veja o LEIA-ME) antes de mandar o link.</p></div>` : ""}
     <div class="card stack">
@@ -689,7 +691,9 @@ function tabAdmin(ev) {
       <p class="muted">Ao confirmar, a votação é encerrada e todos veem a data escolhida.</p>
       <div class="select-wrap"><select id="final-sel" aria-label="Data final">${options.map((o) => `<option value="${o.date}" ${o.date === ev.finalDate ? "selected" : ""}>${esc(o.label)}</option>`).join("")}</select>${icon("chevron", "sel-chev")}</div>
       <button class="btn primary block" data-act="set-final">Confirmar data ${icon("check")}</button>
-      ${ev.finalDate ? `<a class="btn block" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(finalMsg)}">${icon("chat")} Avisar o grupo no WhatsApp</a>
+      ${ev.finalDate ? `<button class="btn block" data-act="share-final">${icon("chat")} Avisar o grupo no WhatsApp</button>
+      <p class="hint center">Envia uma imagem com a data, quantos vão e quem não pode.</p>
+      <a class="link center" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(finalMsg)}">Enviar só o texto</a>
       <button class="link center" data-act="clear-final">Remover data definida</button>` : ""}
     </div>
     <div class="card stack">
@@ -879,6 +883,7 @@ const actions = {
     await api.updateEvent(page.ev.id, { weekdays });
     toast("Dias atualizados. As respostas foram mantidas.");
   },
+  "share-final"() { return shareFinal(page.ev); },
   "clear-final"() { return api.updateEvent(page.ev.id, { finalDate: null }); },
   async "del-event"(el) {
     if (el.dataset.confirm !== "1") { el.dataset.confirm = "1"; el.textContent = "Toque de novo para apagar de vez"; return; }
@@ -903,6 +908,50 @@ app.addEventListener("click", async (e) => {
   if (!fn) return;
   try { await fn(el, e); } catch (err) { showError(err); }
 });
+
+// ---------- imagem da data final ----------
+let finalImg = { key: "", blob: null, promise: null };
+function finalImageData(ev) {
+  const set = (r) => new Set(r.dates || []);
+  const yes = [], no = [];
+  for (const r of page.responses) {
+    const ok = r.mode === "can" ? set(r).has(ev.finalDate) : !set(r).has(ev.finalDate);
+    (ok ? yes : no).push(r.name);
+  }
+  const byName = (a, b) => a.localeCompare(b, "pt-BR");
+  return { eventName: ev.name, desc: ev.desc || "", dateLabel: fmtLong(ev.finalDate), yes: yes.sort(byName), no: no.sort(byName), total: page.responses.length, link: shareLink(ev.id) };
+}
+// Gera (ou reaproveita) a imagem. Fica pronta antes do toque para o compartilhamento abrir na hora.
+function finalImage(ev) {
+  const d = finalImageData(ev);
+  const key = JSON.stringify(d);
+  if (finalImg.key === key && (finalImg.blob || finalImg.promise)) return finalImg.blob ? Promise.resolve(finalImg.blob) : finalImg.promise;
+  finalImg = { key, blob: null, promise: null };
+  const mine = finalImg;
+  mine.promise = makeFinalImage(d).then((b) => { mine.blob = b; return b; });
+  return mine.promise;
+}
+async function shareFinal(ev) {
+  const text = `*${ev.name}*\nData definida: *${fmtLong(ev.finalDate)}*\n${shareLink(ev.id)}`;
+  const blob = await finalImage(ev);
+  const file = new File([blob], "bora-marcar-data.png", { type: "image/png" });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], text });
+      return;
+    } catch (err) {
+      if (err && err.name === "AbortError") return;
+      if (err && err.name === "NotAllowedError") { toast("Imagem pronta. Toque de novo para enviar."); return; }
+      throw err;
+    }
+  }
+  // Sem compartilhamento de arquivos (ex.: computador): baixa a imagem.
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = file.name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  toast("Imagem baixada. Envie no grupo pelo WhatsApp.", 4500);
+}
 
 // ---------- início ----------
 async function boot() {
