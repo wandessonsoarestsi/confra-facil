@@ -377,3 +377,23 @@ summary { cursor: pointer; font-weight: 600; }
 .code-list code { font: 800 1rem var(--font); letter-spacing: .14em; white-space: nowrap; }
 .uid { font-size: .78rem; overflow-wrap: anywhere; }
 .uid code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; user-select: all; }
+
+/* datas de cada pessoa */
+.avail { display: grid; gap: 16px; }
+.avail-col { display: grid; gap: 10px; }
+.avail-head { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: .92rem; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.avail-head .ic { width: 22px; height: 22px; padding: 4px; border-radius: 7px; stroke-width: 2.6; }
+.avail-head.y .ic { background: var(--can-soft); color: var(--can); }
+.avail-head.n .ic { background: var(--cannot-soft); color: var(--cannot); }
+.avail-head b { margin-left: auto; font-size: .8rem; color: var(--muted); font-weight: 600; }
+.dg-month { display: grid; gap: 6px; }
+.dg-label { font-size: .74rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.dg-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.dchip {
+  display: inline-grid; justify-items: center; min-width: 46px; padding: 6px 8px; border-radius: 12px;
+  font-weight: 800; font-size: 1rem; line-height: 1.1; font-variant-numeric: tabular-nums;
+}
+.dchip small { font-size: .64rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; opacity: .8; }
+.dchip.y { background: var(--can-soft); color: var(--can); }
+.dchip.n { background: var(--cannot-soft); color: var(--cannot); }
+.ap-body .avail { padding-top: 4px; }

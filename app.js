@@ -570,13 +570,42 @@ function tabResults(ev) {
   </section>`;
 }
 
+// Datas agrupadas por mês, cada uma como uma "pílula" com dia da semana e dia.
+function dateGroups(list, kind) {
+  if (!list.length) return `<p class="muted">Nenhum dia</p>`;
+  const byMonth = new Map();
+  for (const d of list) {
+    const key = d.slice(0, 7);
+    if (!byMonth.has(key)) byMonth.set(key, []);
+    byMonth.get(key).push(d);
+  }
+  return [...byMonth.entries()].map(([key, ds]) => {
+    const month = cap(fromISO(key + "-01").toLocaleDateString("pt-BR", { month: "long" }));
+    return `<div class="dg-month"><span class="dg-label">${month}</span><div class="dg-chips">${ds.map((d) => {
+      const dt = fromISO(d);
+      return `<span class="dchip ${kind}"><small>${WD_NAMES[dt.getDay()]}</small>${pad(dt.getDate())}</span>`;
+    }).join("")}</div></div>`;
+  }).join("");
+}
+function availabilityBlocks(can, cannot) {
+  return `<div class="avail">
+    <div class="avail-col">
+      <div class="avail-head y">${icon("check")}<span>Pode</span><b>${plural(can.length, "dia", "dias")}</b></div>
+      ${dateGroups(can, "y")}
+    </div>
+    <div class="avail-col">
+      <div class="avail-head n">${icon("x")}<span>Não pode</span><b>${plural(cannot.length, "dia", "dias")}</b></div>
+      ${dateGroups(cannot, "n")}
+    </div>
+  </div>`;
+}
+
 // Resumo para o participante conferir o que marcou.
 function mySummary(ev, mine) {
   const { can, cannot } = availability(ev, mine);
   return `<div class="card stack mine-summary">
     <h3 class="card-title">${icon("eye")} O que você marcou</h3>
-    <p><span class="tag y">${icon("check")} Pode</span> ${can.length ? can.map(fmtShort).join(", ") : "nenhum dia"}</p>
-    <p><span class="tag n">${icon("x")} Não pode</span> ${cannot.length ? cannot.map(fmtShort).join(", ") : "nenhum dia"}</p>
+    ${availabilityBlocks(can, cannot)}
   </div>`;
 }
 
@@ -608,8 +637,7 @@ function adminResponses(ev) {
     return `<li><details>
       <summary><span class="mini-av">${esc(initials(r.name))}</span><span class="ap-main"><b>${esc(r.name)}</b><span class="muted">${phone ? esc(fmtPhone(phone)) + " · " : ""}marcou os dias que ${r.mode === "can" ? "pode" : "não pode"}</span></span>${icon("chevron", "chev")}</summary>
       <div class="ap-body">
-        <p><span class="tag y">${icon("check")} Pode</span> ${can.length ? can.map(fmtShort).join(", ") : "nenhum dia"}</p>
-        <p><span class="tag n">${icon("x")} Não pode</span> ${cannot.length ? cannot.map(fmtShort).join(", ") : "nenhum dia"}</p>
+        ${availabilityBlocks(can, cannot)}
         <button class="link danger" data-act="del-resp" data-uid="${esc(r.uid)}" data-name="${esc(r.name)}">${icon("trash")} Remover resposta</button>
       </div>
     </details></li>`;
