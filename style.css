@@ -370,3 +370,8 @@ summary { cursor: pointer; font-weight: 600; }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+.code-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.code-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: var(--r-md); background: var(--surface-2); }
+.code-list li > span { display: grid; min-width: 0; }
+.code-list code { font: 800 1rem var(--font); letter-spacing: .14em; white-space: nowrap; }

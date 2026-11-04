@@ -256,7 +256,7 @@ function header() {
     <a href="${location.pathname}" class="brand" data-act="home" aria-label="Início">${logoMark("sm")}${wordmark()}</a>
     <div class="top-actions">
       ${themeBtn()}
-      ${user && profile?.name ? `<button class="avatar" data-act="logout" title="Sair (${esc(profile.name)})" aria-label="Sair">${esc(initials(profile.name))}</button>` : ""}
+      ${user && profile?.name ? `<button class="avatar" data-act="account" title="Sua conta" aria-label="Sua conta">${esc(initials(profile.name))}</button>` : ""}
     </div>
   </header>`;
 }
@@ -310,6 +310,38 @@ function renderProfile() {
     <button class="btn primary block" type="submit">Continuar ${icon("arrow")}</button>
   </form>`);
   app.querySelector("input")?.focus();
+}
+
+// Tela da conta: antes de sair, mostra os códigos de organizador para não perder acesso.
+async function renderAccount() {
+  closeEvent();
+  renderShell(`<div class="loading">Carregando…</div>`);
+  let events = [];
+  try { events = await api.listMyEvents(user.uid); } catch (e) { console.error(e); }
+  const codes = await Promise.all(events.map(async (ev) => {
+    try {
+      let code = await api.getAdminCode(ev.id);
+      if (!code && ev.adminUid === user.uid) { code = newAdminCode(); await api.setAdminCode(ev.id, code); }
+      return code;
+    } catch { return null; }
+  }));
+  const anon = api.authMode === "simples";
+  const list = events.length
+    ? `<ul class="code-list">${events.map((ev, i) => `<li><span><b>${esc(ev.name)}</b><span class="muted">${fmtShort(ev.start)} a ${fmtShort(ev.end)}</span></span><code>${codes[i] ? esc(codes[i]) : "sem código"}</code></li>`).join("")}</ul>`
+    : `<p class="muted">Você não organiza nenhum evento neste aparelho.</p>`;
+  renderShell(`
+    <section class="greet"><h1>Sua conta</h1><p class="muted">${esc(profile?.name || "")}${profile?.phone ? " · " + esc(fmtPhone(profile.phone)) : ""}</p></section>
+    <div class="card stack">
+      <h3 class="card-title">${icon("key")} Seus códigos de organizador</h3>
+      <p class="muted">Anote estes códigos. Com eles você volta a gerenciar seus eventos em qualquer aparelho.</p>
+      ${list}
+    </div>
+    <div class="card stack danger-zone">
+      <h3 class="card-title">${icon("logout")} Sair</h3>
+      ${anon ? `<div class="note warn">${icon("alert")}<p>Ao sair, este aparelho perde o acesso de organizador. Para voltar a gerenciar, você vai precisar do código de cada evento.</p></div>` : ""}
+      <button class="btn danger" data-act="logout">${icon("logout")} Sair mesmo assim</button>
+    </div>
+    <button class="btn block" data-act="home">${icon("back")} Voltar</button>`);
 }
 
 let homeCreateOpen = false;
@@ -727,6 +759,7 @@ app.addEventListener("submit", async (e) => {
 const actions = {
   home(el, e) { e.preventDefault(); go(null); },
   open(el, e) { e.preventDefault(); go(el.dataset.id); },
+  account(el, e) { e.preventDefault(); renderAccount(); },
   async logout() { closeEvent(); login = { step: "phone", phone: "", phoneRaw: "" }; await api.signOut(); },
   "change-phone"() { login.step = "phone"; renderLogin(currentEventId()); },
   tab(el) { page.tab = el.dataset.tab; renderEvent(); window.scrollTo({ top: 0 }); },
