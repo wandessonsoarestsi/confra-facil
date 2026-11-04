@@ -193,3 +193,5 @@ summary { cursor: pointer; }
 .tag.y { background: var(--can-soft); color: var(--can); }
 .tag.n { background: var(--cannot-soft); color: var(--cannot); }
 .mode-btn:disabled { opacity: .4; cursor: not-allowed; }
+.code-show { font: 700 1.6rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .15em; }
+.claim-link { text-align: center; margin-top: 8px; }

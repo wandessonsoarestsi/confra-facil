@@ -1,4 +1,4 @@
-// Configuração do Confra Fácil
+// Configuração do Bora Marcar
 // Veja o LEIA-ME.md para o passo a passo.
 
 export const CONFIG = {
@@ -32,9 +32,11 @@ export const CONFIG = {
   // ou o SHA-256 dele no formato "+5511987654321", para não deixar o número público.
   // Quem não estiver na lista só consegue marcar datas pelo link do evento.
   // Deixe a lista vazia [] para qualquer pessoa poder criar eventos.
-  adminPhones: [
-    "6f7a16be077b55f156f7f4922798e42589ec29deb5f070b1f2f47291f0e1754c", // Wandesson
-  ],
+  adminPhones: [],
+
+  // Proteção contra robôs (App Check). Cole aqui a "chave do site" do reCAPTCHA v3
+  // depois de registrar o app no App Check do Firebase (veja o LEIA-ME). null = desligado.
+  appCheckSiteKey: null,
 
   // Código do país usado quando a pessoa digita só DDD + número
   defaultCountryCode: "+55",

@@ -1,4 +1,4 @@
-# Confra Fácil 🎉
+# Bora Marcar 🎉
 
 Site para escolher a data da confraternização. O organizador cria um evento e manda o link no grupo do WhatsApp. Cada pessoa entra com o telefone, escolhe se vai marcar os dias que **pode** ou os dias que **não pode**, e toca no calendário. O site calcula, para cada dia, quantas pessoas podem ir e mostra o ranking das melhores datas.
 

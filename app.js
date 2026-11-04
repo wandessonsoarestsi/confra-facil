@@ -13,7 +13,10 @@ let login = { step: "phone", phone: "", phoneRaw: "" };
 let page = emptyPage(null);
 
 function emptyPage(id) {
-  return { eventId: id, ev: null, responses: [], unsub: [], tab: "minhas", draft: null, dirty: false, loaded: false, showAll: false };
+  return {
+    eventId: id, ev: null, responses: [], unsub: [], tab: "minhas", draft: null, dirty: false, loaded: false, showAll: false,
+    coAdmin: false, adminInit: false, adminCode: null, contacts: {}, migrated: new Set(), claimOpen: false,
+  };
 }
 
 // ---------- utilidades ----------
@@ -84,6 +87,37 @@ async function refreshOrganizer() {
 }
 function canCreate() { return organizer; }
 
+// Código do organizador: 8 letras/números fáceis de ler (sem 0/O, 1/I).
+function newAdminCode() {
+  const abc = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const n = crypto.getRandomValues(new Uint32Array(8));
+  return [...n].map((x) => abc[x % abc.length]).join("");
+}
+const isEventAdmin = (ev) => !!ev && (ev.adminUid === user?.uid || page.coAdmin);
+
+// Ao virar organizador: assina os telefones, busca o código e move telefones antigos.
+function startAdmin(ev) {
+  if (page.adminInit) return;
+  page.adminInit = true;
+  const id = ev.id;
+  page.unsub.push(api.watchContacts(id, (cs) => {
+    if (page.eventId !== id) return;
+    page.contacts = Object.fromEntries(cs.map((c) => [c.uid, c]));
+    renderEvent();
+  }, (e) => console.error(e)));
+  api.getAdminCode(id).then(async (code) => {
+    if (!code && ev.adminUid === user.uid) { code = newAdminCode(); await api.setAdminCode(id, code); }
+    if (page.eventId === id) { page.adminCode = code; renderEvent(); }
+  }).catch((e) => { console.error(e); if (page.eventId === id) { page.adminCode = "erro"; renderEvent(); } });
+}
+function migrateOldPhones() {
+  for (const r of page.responses) {
+    if (!r.phone || page.migrated.has(r.uid)) continue;
+    page.migrated.add(r.uid);
+    api.migrateContact(page.eventId, r).catch((e) => console.error(e));
+  }
+}
+
 // ---------- cálculo ----------
 function candidateDates(ev) {
   const out = [];
@@ -144,6 +178,7 @@ function openEvent(id) {
   page = emptyPage(id);
   renderShell(`<div class="loading">Carregando evento…</div>`);
   page.unsub.push(api.watchEvent(id, (ev) => { if (page.eventId !== id) return; page.ev = ev; page.loaded = true; renderEvent(); }, showError));
+  api.isCoAdmin(id, user.uid).then((v) => { if (page.eventId === id && v) { page.coAdmin = true; renderEvent(); } }).catch(() => {});
   page.unsub.push(api.watchResponses(id, (rs) => {
     if (page.eventId !== id) return;
     page.responses = rs;
@@ -155,7 +190,7 @@ function openEvent(id) {
 // ---------- telas ----------
 function header() {
   return `<header class="top">
-    <a href="${location.pathname}" class="brand" data-act="home">🎉 Confra Fácil</a>
+    <a href="${location.pathname}" class="brand" data-act="home">🎉 Bora Marcar</a>
     ${user && profile?.name ? `<div class="who"><span>${esc(profile.name)}</span><button class="link" data-act="logout">Sair</button></div>` : ""}
   </header>`;
 }
@@ -252,7 +287,8 @@ function renderEvent() {
       : "Confira se o link está completo ou peça o link de novo ao organizador. Se o evento foi apagado, peça o link novo."}</p>
       ${canCreate() ? `<button class="btn primary" data-act="home">Ir para meus eventos</button>` : ""}</div>`);
   }
-  const isAdmin = ev.adminUid === user.uid;
+  const isAdmin = isEventAdmin(ev);
+  if (isAdmin) { startAdmin(ev); migrateOldPhones(); }
   const mine = page.responses.find((r) => r.uid === user.uid);
   if (!page.draft) page.draft = { mode: mine?.mode || "can", dates: new Set(mine?.dates || []) };
   const canSee = isAdmin || ev.showResults || ev.closed;
@@ -272,7 +308,18 @@ function renderEvent() {
     ${ev.finalDate ? `<div class="final"><span>Data definida 🎉</span><strong>${fmtLong(ev.finalDate)}</strong></div>` : ""}
     ${tabs.length > 1 ? `<nav class="tabs" role="tablist">${tabs.map(([k, l]) => `<button role="tab" aria-selected="${page.tab === k}" class="${page.tab === k ? "on" : ""}" data-act="tab" data-tab="${k}">${l}</button>`).join("")}</nav>` : ""}
     ${body}
+    ${isAdmin ? "" : claimBox()}
   `);
+}
+
+function claimBox() {
+  if (!page.claimOpen) return `<p class="claim-link"><button class="link" data-act="claim-open">Sou o organizador deste evento</button></p>`;
+  return `<form id="f-claim" class="card stack">
+    <h3>Entrar como organizador</h3>
+    <p class="hint">Digite o código do organizador. Ele aparece na aba Gerenciar do aparelho onde o evento foi criado.</p>
+    <label>Código<input name="code" required maxlength="12" autocomplete="off" autocapitalize="characters" class="code-input"></label>
+    <button class="btn primary" type="submit">Entrar</button>
+  </form>`;
 }
 
 function tabMine(ev, mine) {
@@ -410,7 +457,7 @@ function adminResponses(ev) {
   </table></div>`;
   const list = `<ul class="admin-people">${people.map(({ r, can, cannot }) => `<li>
     <details>
-      <summary><b>${esc(r.name)}</b><span class="muted">${r.phone ? esc(fmtPhone(r.phone)) + " · " : ""}marcou os dias que ${r.mode === "can" ? "pode" : "não pode"}</span></summary>
+      <summary><b>${esc(r.name)}</b><span class="muted">${(page.contacts[r.uid]?.phone || r.phone) ? esc(fmtPhone(page.contacts[r.uid]?.phone || r.phone)) + " · " : ""}marcou os dias que ${r.mode === "can" ? "pode" : "não pode"}</span></summary>
       <p><span class="tag y">Pode</span> ${can.length ? can.map(fmtShort).join(", ") : "nenhum dia"}</p>
       <p><span class="tag n">Não pode</span> ${cannot.length ? cannot.map(fmtShort).join(", ") : "nenhum dia"}</p>
       <button class="link danger" data-act="del-resp" data-uid="${esc(r.uid)}" data-name="${esc(r.name)}">remover resposta</button>
@@ -438,6 +485,13 @@ function tabAdmin(ev) {
         <button class="btn" data-act="copy" data-text="${esc(link)}">Copiar link</button>
         <a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(invite)}">Enviar no WhatsApp</a>
       </div>
+    </div>
+    <div class="card stack">
+      <h3>Código do organizador</h3>
+      ${page.adminCode === "erro"
+        ? `<p class="hint">O código fica disponível depois que as novas regras de segurança forem publicadas no Firebase.</p>`
+        : `<p class="code-show">${page.adminCode ? esc(page.adminCode) : "…"}</p>`}
+      <p class="hint">Guarde este código. Para gerenciar o evento em outro celular ou computador, abra o link do evento, toque em "Sou o organizador deste evento" e digite o código. Não compartilhe no grupo.</p>
     </div>
     <div class="card stack">
       <h3>Votação ${ev.closed ? "encerrada" : "aberta"}</h3>
@@ -505,6 +559,20 @@ const forms = {
     await refreshOrganizer();
     route();
   },
+  async "f-claim"(fd) {
+    const code = String(fd.get("code") || "").trim().toUpperCase().replace(/\s/g, "");
+    if (!code) return;
+    try { await api.claimAdmin(page.eventId, user.uid, code); }
+    catch (e) {
+      if (e?.code === "permission-denied") return toast("Código incorreto. Confira e tente de novo.");
+      throw e;
+    }
+    page.coAdmin = true;
+    page.claimOpen = false;
+    page.tab = "admin";
+    renderEvent();
+    toast("Pronto! Agora você gerencia este evento neste aparelho.");
+  },
   async "f-create"(fd) {
     const start = fd.get("start"), end = fd.get("end");
     const weekdays = fd.getAll("wd").map(Number);
@@ -524,7 +592,12 @@ const forms = {
     };
     if (!canCreate()) return toast("Só o organizador pode criar eventos.");
     if (!candidateDates(ev).length) return toast("Nenhum dia do período cai nos dias da semana escolhidos.");
-    const id = await api.createEvent(ev);
+    let id;
+    try { id = await api.createEvent(ev, newAdminCode()); }
+    catch (e) {
+      if (e?.code === "permission-denied") return toast("Não foi possível criar o evento. Cada pessoa pode criar no máximo 30 eventos.", 6000);
+      throw e;
+    }
     go(id);
     page.tab = "admin";
     renderEvent();
@@ -574,17 +647,17 @@ const actions = {
     const ev = page.ev;
     const data = {
       name: profile.name,
-      phone: profile.phone || user.phone || null,
       mode: page.draft.mode,
       dates: [...page.draft.dates].filter((x) => candidateDates(ev).includes(x)).sort(),
     };
     page.dirty = false;
     try {
-      await api.saveResponse(ev.id, user.uid, data);
+      await api.saveResponse(ev.id, user.uid, data, { name: profile.name, phone: profile.phone || user.phone || null });
       toast("Datas salvas! Obrigado 🎉");
-      if (ev.showResults || ev.adminUid === user.uid) { page.tab = "resultado"; renderEvent(); window.scrollTo({ top: 0 }); }
+      if (ev.showResults || isEventAdmin(ev)) { page.tab = "resultado"; renderEvent(); window.scrollTo({ top: 0 }); }
     } catch (e) { page.dirty = true; renderEvent(); throw e; }
   },
+  "claim-open"() { page.claimOpen = true; renderEvent(); app.querySelector("#f-claim input")?.focus(); },
   "show-all"() { page.showAll = !page.showAll; renderEvent(); },
   async copy(el) {
     try { await navigator.clipboard.writeText(el.dataset.text); toast("Link copiado!"); }
@@ -609,7 +682,7 @@ const actions = {
   async "del-event"(el) {
     if (el.dataset.confirm !== "1") { el.dataset.confirm = "1"; el.textContent = "Toque de novo para apagar de vez"; return; }
     const id = page.ev.id;
-    for (const r of page.responses) await api.deleteResponse(id, r.uid);
+    closeEvent();
     await api.deleteEvent(id);
     toast("Evento apagado.");
     go(null);
@@ -635,7 +708,7 @@ async function boot() {
   try {
     if (CONFIG.firebase) {
       const m = await import("./firebase-backend.js");
-      api = await m.createFirebaseBackend(CONFIG.firebase, CONFIG.authMode);
+      api = await m.createFirebaseBackend(CONFIG.firebase, CONFIG.authMode, CONFIG.appCheckSiteKey);
     } else {
       const m = await import("./demo-backend.js");
       api = m.createDemoBackend(CONFIG.authMode);

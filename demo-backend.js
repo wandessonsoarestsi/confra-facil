@@ -6,14 +6,14 @@ export const DEMO_CODE = "123456";
 const FAKE_NAMES = ["Ana", "Bruno", "Carla", "Diego", "Elisa", "Fábio", "Gabi", "Hugo", "Íris", "João", "Larissa", "Marcos"];
 
 export function createDemoBackend(authMode) {
-  let mem = { events: {}, responses: {}, users: {}, session: null };
+  let mem = { events: {}, responses: {}, users: {}, contacts: {}, secrets: {}, admins: {}, session: null };
   const listeners = new Set();
   const emit = () => listeners.forEach((f) => f());
 
   const read = () => {
     try {
       const s = localStorage.getItem(KEY);
-      if (s) mem = JSON.parse(s);
+      if (s) mem = { contacts: {}, secrets: {}, admins: {}, ...JSON.parse(s) };
     } catch {}
   };
   const write = () => {
@@ -64,9 +64,10 @@ export function createDemoBackend(authMode) {
 
     async saveProfile(uid, p) { mem.users[uid] = { ...(mem.users[uid] || {}), ...p }; write(); },
 
-    async createEvent(data) {
+    async createEvent(data, code) {
       const id = Math.random().toString(36).slice(2, 10);
       mem.events[id] = data;
+      mem.secrets[id] = code;
       write();
       return id;
     },
@@ -79,17 +80,46 @@ export function createDemoBackend(authMode) {
       return watch(() => cb(Object.entries(mem.responses[id] || {}).map(([uid, r]) => ({ uid, ...r }))));
     },
 
-    async saveResponse(id, uid, data) {
+    watchContacts(id, cb) {
+      return watch(() => cb(Object.entries(mem.contacts[id] || {}).map(([uid, c]) => ({ uid, ...c }))));
+    },
+
+    async saveResponse(id, uid, data, contact) {
       (mem.responses[id] ||= {})[uid] = { ...data, updatedAt: Date.now() };
+      (mem.contacts[id] ||= {})[uid] = contact;
       write();
     },
 
-    async deleteResponse(id, uid) { delete (mem.responses[id] || {})[uid]; write(); },
+    async migrateContact(id, r) {
+      (mem.contacts[id] ||= {})[r.uid] = { name: r.name, phone: r.phone };
+      delete mem.responses[id][r.uid].phone;
+      write();
+    },
 
-    async deleteEvent(id) { delete mem.events[id]; delete mem.responses[id]; write(); },
+    async deleteResponse(id, uid) {
+      delete (mem.responses[id] || {})[uid];
+      delete (mem.contacts[id] || {})[uid];
+      write();
+    },
+
+    async deleteEvent(id) {
+      for (const k of ["events", "responses", "contacts", "secrets", "admins"]) delete mem[k][id];
+      write();
+    },
+
+    async getAdminCode(id) { return mem.secrets[id] || null; },
+    async setAdminCode(id, code) { mem.secrets[id] = code; write(); },
+    async isCoAdmin(id, uid) { return !!mem.admins[id]?.[uid]; },
+    async claimAdmin(id, uid, code) {
+      if (!mem.events[id] || mem.secrets[id] !== code) throw { code: "permission-denied" };
+      (mem.admins[id] ||= {})[uid] = true;
+      write();
+    },
 
     async listMyEvents(uid) {
-      return Object.entries(mem.events).filter(([, e]) => e.adminUid === uid).map(([id, e]) => ({ id, ...e }));
+      return Object.entries(mem.events)
+        .filter(([id, e]) => e.adminUid === uid || mem.admins[id]?.[uid])
+        .map(([id, e]) => ({ id, ...e }));
     },
 
     // Só no modo demonstração: cria respostas fictícias para ver o cálculo.

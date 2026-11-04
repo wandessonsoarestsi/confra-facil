@@ -2,33 +2,95 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+    function userPath() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+    function evPath(id) { return /databases/$(database)/documents/events/$(id); }
 
-    // Perfil (nome e telefone) de cada pessoa: só ela lê e escreve.
-    match /users/{uid} {
-      allow read, write: if signedIn() && request.auth.uid == uid;
+    // Perfil de cada pessoa: só ela lê e escreve.
+    // "eventsCreated" só pode subir de 1 em 1, junto com a criação de um evento (máximo 30).
+    match /users/{userId} {
+      allow read: if signedIn() && me() == userId;
+      allow create: if signedIn() && me() == userId
+        && !('eventsCreated' in request.resource.data)
+        && !('lastEventId' in request.resource.data);
+      allow update: if signedIn() && me() == userId && (
+        (request.resource.data.get('eventsCreated', 0) == resource.data.get('eventsCreated', 0)
+          && request.resource.data.get('lastEventId', '') == resource.data.get('lastEventId', ''))
+        || (request.resource.data.eventsCreated == resource.data.get('eventsCreated', 0) + 1
+          && request.resource.data.eventsCreated <= 30
+          && request.resource.data.lastEventId is string
+          && !exists(evPath(request.resource.data.lastEventId))
+          && getAfter(evPath(request.resource.data.lastEventId)).data.adminUid == me())
+      );
     }
 
     match /events/{eventId} {
-      function ev() { return get(/databases/$(database)/documents/events/$(eventId)).data; }
-      function isAdmin() { return signedIn() && ev().adminUid == request.auth.uid; }
+      function ev() { return get(evPath(eventId)).data; }
+      function isAdmin() {
+        return signedIn() && (ev().adminUid == me()
+          || exists(/databases/$(database)/documents/events/$(eventId)/admins/$(request.auth.uid)));
+      }
+      function validEvent(d) {
+        return d.keys().hasOnly(['name', 'desc', 'start', 'end', 'weekdays', 'showResults', 'closed', 'finalDate', 'adminUid', 'adminName', 'createdAt'])
+          && d.name is string && d.name.size() > 0 && d.name.size() <= 60
+          && d.get('desc', '') is string && d.get('desc', '').size() <= 300
+          && d.start is string && d.start.size() == 10
+          && d.end is string && d.end.size() == 10
+          && d.weekdays is list && d.weekdays.size() <= 7;
+      }
 
       allow read: if signedIn();
-      allow create: if signedIn() && request.resource.data.adminUid == request.auth.uid;
-      allow update: if signedIn() && resource.data.adminUid == request.auth.uid
-                    && request.resource.data.adminUid == resource.data.adminUid;
-      allow delete: if signedIn() && resource.data.adminUid == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.adminUid == me()
+        && validEvent(request.resource.data)
+        && getAfter(userPath()).data.eventsCreated == get(userPath()).data.get('eventsCreated', 0) + 1
+        && getAfter(userPath()).data.lastEventId == eventId;
+      allow update: if isAdmin()
+        && request.resource.data.adminUid == resource.data.adminUid
+        && validEvent(request.resource.data);
+      allow delete: if isAdmin();
 
-      // Resposta de cada participante: o documento tem o id da própria pessoa.
-      match /responses/{uid} {
+      // Código do organizador: só organizadores leem.
+      match /secret/{docId} {
+        allow read, delete: if isAdmin();
+        allow create: if signedIn() && ev().adminUid == me()
+          && request.resource.data.keys().hasOnly(['code'])
+          && request.resource.data.code is string && request.resource.data.code.size() >= 6;
+      }
+
+      // Quem digitou o código certo vira organizador.
+      match /admins/{userId} {
+        allow read: if signedIn() && (me() == userId || isAdmin());
+        allow create: if signedIn() && me() == userId
+          && request.resource.data.code == get(/databases/$(database)/documents/events/$(eventId)/secret/code).data.code;
+        allow delete: if signedIn() && (me() == userId || isAdmin());
+      }
+
+      // Datas de cada pessoa: todos do evento leem (para ver o resultado).
+      match /responses/{userId} {
         allow read: if signedIn();
-        allow create, update: if signedIn() && request.auth.uid == uid
-                              && ev().closed == false
-                              && request.resource.data.mode in ['can', 'cannot']
-                              && request.resource.data.dates is list
-                              && request.resource.data.dates.size() <= 200
-                              && request.resource.data.name is string
-                              && request.resource.data.name.size() <= 40;
-        allow delete: if signedIn() && (request.auth.uid == uid || isAdmin());
+        allow create, update: if signedIn() && me() == userId && ev().closed == false
+          && request.resource.data.keys().hasOnly(['name', 'mode', 'dates', 'updatedAt'])
+          && request.resource.data.mode in ['can', 'cannot']
+          && request.resource.data.dates is list
+          && request.resource.data.dates.size() <= 200
+          && request.resource.data.name is string
+          && request.resource.data.name.size() <= 40;
+        // O organizador só pode tirar o telefone de respostas antigas.
+        allow update: if isAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['phone'])
+          && !('phone' in request.resource.data);
+        allow delete: if signedIn() && (me() == userId || isAdmin());
+      }
+
+      // Telefone de cada pessoa: só ela e o organizador leem.
+      match /contacts/{userId} {
+        allow read: if signedIn() && (me() == userId || isAdmin());
+        allow create, update: if signedIn() && (me() == userId || isAdmin())
+          && request.resource.data.keys().hasOnly(['name', 'phone'])
+          && request.resource.data.name is string && request.resource.data.name.size() <= 40
+          && (request.resource.data.phone == null
+              || (request.resource.data.phone is string && request.resource.data.phone.size() <= 20));
+        allow delete: if signedIn() && (me() == userId || isAdmin());
       }
     }
   }
