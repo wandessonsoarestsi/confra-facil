@@ -345,7 +345,6 @@ summary { cursor: pointer; font-weight: 600; }
 .matrix td .ic { width: 16px; height: 16px; stroke-width: 2.6; }
 .matrix td.y { color: var(--can); }
 .matrix td.n { color: var(--cannot); opacity: .75; }
-.matrix td.u { color: var(--muted); opacity: .6; font-weight: 700; }
 .matrix tfoot td, .matrix tfoot th { font-weight: 800; border-bottom: 0; }
 
 .admin-people { list-style: none; margin: 0; padding: 0; display: grid; }
@@ -386,7 +385,6 @@ summary { cursor: pointer; font-weight: 600; }
 .avail-head .ic { width: 22px; height: 22px; padding: 4px; border-radius: 7px; stroke-width: 2.6; }
 .avail-head.y .ic { background: var(--can-soft); color: var(--can); }
 .avail-head.n .ic { background: var(--cannot-soft); color: var(--cannot); }
-.avail-head.u .ic { background: var(--surface-2); color: var(--muted); }
 .avail-head b { margin-left: auto; font-size: .8rem; color: var(--muted); font-weight: 600; }
 .dg-month { display: grid; gap: 6px; }
 .dg-label { font-size: .74rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
@@ -398,6 +396,4 @@ summary { cursor: pointer; font-weight: 600; }
 .dchip small { font-size: .64rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; opacity: .8; }
 .dchip.y { background: var(--can-soft); color: var(--can); }
 .dchip.n { background: var(--cannot-soft); color: var(--cannot); }
-.dchip.u { background: var(--surface-2); color: var(--muted); border: 1px dashed var(--line); }
 .ap-body .avail { padding-top: 4px; }
-.hint .ic { width: 14px; height: 14px; vertical-align: -2px; stroke-width: 2.6; }

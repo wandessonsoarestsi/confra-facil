@@ -132,22 +132,20 @@ function candidateDates(ev) {
 }
 
 // Para cada data candidata, conta quem pode ir.
-// Três situações por dia:
-// - Quem marcou "posso": pode nas datas marcadas; nas outras, não informou.
-// - Quem marcou "não posso": não pode nas marcadas; nas outras, pode.
-function dayStatus(mode, set, date) {
-  if (mode === "can") return set.has(date) ? "yes" : "unknown";
-  return set.has(date) ? "no" : "yes";
-}
+// Quem marcou "posso": pode nas datas marcadas.
+// Quem marcou "não posso": pode em todas as datas, menos as marcadas.
 export function computeRanking(ev, responses) {
   const people = responses.map((r) => ({ name: r.name, mode: r.mode, set: new Set(r.dates || []) }));
   return candidateDates(ev)
     .map((date) => {
-      const out = { date, yes: [], no: [], unknown: [] };
-      for (const p of people) out[dayStatus(p.mode, p.set, date)].push(p.name);
-      return out;
+      const yes = [], no = [];
+      for (const p of people) {
+        const ok = p.mode === "can" ? p.set.has(date) : !p.set.has(date);
+        (ok ? yes : no).push(p.name);
+      }
+      return { date, yes, no };
     })
-    .sort((a, b) => b.yes.length - a.yes.length || a.no.length - b.no.length || a.date.localeCompare(b.date));
+    .sort((a, b) => b.yes.length - a.yes.length || a.date.localeCompare(b.date));
 }
 
 // ---------- navegação ----------
@@ -489,7 +487,7 @@ function tabMine(ev, mine) {
       <button class="seg ${d.mode === "can" ? "on can" : ""}" data-act="mode" data-mode="can" role="radio" aria-checked="${d.mode === "can"}" ${n && d.mode !== "can" ? "disabled" : ""}>${icon("calCheck")} Dias que posso</button>
       <button class="seg ${d.mode === "cannot" ? "on cannot" : ""}" data-act="mode" data-mode="cannot" role="radio" aria-checked="${d.mode === "cannot"}" ${n && d.mode !== "cannot" ? "disabled" : ""}>${icon("calX")} Dias que não posso</button>
     </div>
-    <p class="hint">${d.mode === "can" ? "Toque nos dias em que você <b>pode</b> ir. Os outros ficam como \"não informado\", não como \"não posso\"." : "Toque nos dias em que você <b>não pode</b> ir. Os outros contam como livres."}${n ? " Para trocar de opção, limpe a seleção primeiro." : ""}</p>
+    <p class="hint">${d.mode === "can" ? "Toque nos dias em que você <b>pode</b> ir." : "Toque nos dias em que você <b>não pode</b> ir. Os outros contam como livres."}${n ? " Para trocar de opção, limpe a seleção primeiro." : ""}</p>
     <div class="card">${calendar(ev, "pick")}
       <div class="legend"><span><i class="lg-on ${d.mode}"></i>${d.mode === "can" ? "Posso" : "Não posso"}</span><span><i class="lg-free"></i>Em votação</span><span><i class="lg-off"></i>Fora da votação</span></div>
     </div>
@@ -556,9 +554,7 @@ function tabResults(ev) {
     return `<li class="${r.yes.length === max && max > 0 ? "top" : ""}">
       <div class="rk-top"><span class="pos">${i + 1}</span><b>${fmtLong(r.date)}</b><span class="cnt">${r.yes.length}<small>/${total}</small></span></div>
       <div class="bar"><i style="width:${pct}%"></i></div>
-      ${r.no.length ? `<details><summary>Não podem (${r.no.length})</summary><p>${r.no.map(esc).join(", ")}</p></details>` : ""}
-      ${r.unknown.length ? `<details class="unk"><summary>Não informaram (${r.unknown.length})</summary><p>${r.unknown.map(esc).join(", ")}</p></details>` : ""}
-      ${!r.no.length && !r.unknown.length ? `<p class="all">${icon("check")} Todos podem</p>` : ""}
+      ${r.no.length ? `<details><summary>Não podem (${r.no.length})</summary><p>${r.no.map(esc).join(", ")}</p></details>` : `<p class="all">${icon("check")} Todos podem</p>`}
     </li>`;
   }).join("");
 
@@ -568,7 +564,7 @@ function tabResults(ev) {
     <ol class="rank">${items}</ol>
     ${rank.length > 8 ? `<button class="link center" data-act="show-all">${page.showAll ? "Mostrar menos" : `Ver todas as ${rank.length} datas`}</button>` : ""}
     <div class="section-head"><h2>Calendário</h2></div>
-    <div class="card">${calendar(ev, "heat", heat)}<p class="hint">Quanto mais forte a cor, mais gente pode. O número é quantas pessoas podem no dia.</p><p class="hint">Quem marcou só os dias que pode não é contado como "não pode" nos outros dias: aparece como "não informou".</p></div>
+    <div class="card">${calendar(ev, "heat", heat)}<p class="hint">Quanto mais forte a cor, mais gente pode. O número é quantas pessoas podem no dia.</p></div>
     <div class="section-head"><h2>Quem respondeu</h2><span class="count">${total}</span></div>
     <ul class="people">${rs.slice().sort((a, b) => a.name.localeCompare(b.name)).map((r) => `<li><span class="mini-av">${esc(initials(r.name))}</span>${esc(r.name)}</li>`).join("")}</ul>
   </section>`;
@@ -591,38 +587,37 @@ function dateGroups(list, kind) {
     }).join("")}</div></div>`;
   }).join("");
 }
-function availabilityBlocks(can, cannot, unknown = []) {
+function availabilityBlocks(can, cannot) {
   return `<div class="avail">
     <div class="avail-col">
       <div class="avail-head y">${icon("check")}<span>Pode</span><b>${plural(can.length, "dia", "dias")}</b></div>
       ${dateGroups(can, "y")}
     </div>
-    ${cannot.length || !unknown.length ? `<div class="avail-col">
+    <div class="avail-col">
       <div class="avail-head n">${icon("x")}<span>Não pode</span><b>${plural(cannot.length, "dia", "dias")}</b></div>
       ${dateGroups(cannot, "n")}
-    </div>` : ""}
-    ${unknown.length ? `<div class="avail-col">
-      <div class="avail-head u">${icon("info")}<span>Não informado</span><b>${plural(unknown.length, "dia", "dias")}</b></div>
-      ${dateGroups(unknown, "u")}
-    </div>` : ""}
+    </div>
   </div>`;
 }
 
 // Resumo para o participante conferir o que marcou.
 function mySummary(ev, mine) {
-  const { can, cannot, unknown } = availability(ev, mine);
+  const { can, cannot } = availability(ev, mine);
   return `<div class="card stack mine-summary">
     <h3 class="card-title">${icon("eye")} O que você marcou</h3>
-    ${availabilityBlocks(can, cannot, unknown)}
+    ${availabilityBlocks(can, cannot)}
   </div>`;
 }
 
 // Visão do organizador: quem pode e quem não pode em cada data.
 function availability(ev, r) {
   const set = new Set(r.dates || []);
-  const out = { yes: [], no: [], unknown: [] };
-  for (const d of candidateDates(ev)) out[dayStatus(r.mode, set, d)].push(d);
-  return { can: out.yes, cannot: out.no, unknown: out.unknown };
+  const can = [], cannot = [];
+  for (const d of candidateDates(ev)) {
+    const ok = r.mode === "can" ? set.has(d) : !set.has(d);
+    (ok ? can : cannot).push(d);
+  }
+  return { can, cannot };
 }
 
 function adminResponses(ev) {
@@ -631,23 +626,23 @@ function adminResponses(ev) {
   const wd = (d) => WD_NAMES[fromISO(d).getDay()];
   const table = `<div class="matrix-wrap"><table class="matrix">
     <thead><tr><th>Nome</th>${dates.map((d) => `<th><span>${wd(d)}</span>${fmtShort(d)}</th>`).join("")}</tr></thead>
-    <tbody>${people.map(({ r, can, cannot }) => {
-      const c = new Set(can), n = new Set(cannot);
-      return `<tr><th>${esc(r.name)}</th>${dates.map((d) => c.has(d) ? `<td class="y" title="Pode">${icon("check")}</td>` : n.has(d) ? `<td class="n" title="Não pode">${icon("x")}</td>` : `<td class="u" title="Não informou">–</td>`).join("")}</tr>`;
+    <tbody>${people.map(({ r, can }) => {
+      const c = new Set(can);
+      return `<tr><th>${esc(r.name)}</th>${dates.map((d) => c.has(d) ? `<td class="y" title="Pode">${icon("check")}</td>` : `<td class="n" title="Não pode">${icon("x")}</td>`).join("")}</tr>`;
     }).join("")}</tbody>
     <tfoot><tr><th>Podem</th>${dates.map((d) => `<td>${people.filter((p) => p.can.includes(d)).length}</td>`).join("")}</tr></tfoot>
   </table></div>`;
-  const list = `<ul class="admin-people">${people.map(({ r, can, cannot, unknown }) => {
+  const list = `<ul class="admin-people">${people.map(({ r, can, cannot }) => {
     const phone = page.contacts[r.uid]?.phone || r.phone;
     return `<li><details>
       <summary><span class="mini-av">${esc(initials(r.name))}</span><span class="ap-main"><b>${esc(r.name)}</b><span class="muted">${phone ? esc(fmtPhone(phone)) + " · " : ""}marcou os dias que ${r.mode === "can" ? "pode" : "não pode"}</span></span>${icon("chevron", "chev")}</summary>
       <div class="ap-body">
-        ${availabilityBlocks(can, cannot, unknown)}
+        ${availabilityBlocks(can, cannot)}
         <button class="link danger" data-act="del-resp" data-uid="${esc(r.uid)}" data-name="${esc(r.name)}">${icon("trash")} Remover resposta</button>
       </div>
     </details></li>`;
   }).join("")}</ul>`;
-  return `${table}<p class="hint">${icon("check")} pode · ${icon("x")} não pode · – não informou. Arraste a tabela para o lado para ver todas as datas. Toque no nome para ver os detalhes.</p>${list}`;
+  return `${table}<p class="hint">Arraste a tabela para o lado para ver todas as datas. Toque no nome para ver os detalhes.</p>${list}`;
 }
 
 function shareLink(id) { return `${location.origin}${location.pathname}?e=${encodeURIComponent(id)}`; }
@@ -657,7 +652,7 @@ function tabAdmin(ev) {
   const invite = `*${ev.name}*\n\nMarque os dias em que você pode (ou não pode) ir. O Bora Marcar encontra a data em que mais gente consegue:\n${link}`;
   const rank = page.responses.length ? computeRanking(ev, page.responses) : [];
   const total = page.responses.length;
-  const options = (rank.length ? rank.slice(0, 15).map((r) => ({ date: r.date, label: `${fmtLong(r.date)} (${r.yes.length}/${total}${r.no.length ? `, ${r.no.length} não` : ""})` })) : candidateDates(ev).map((d) => ({ date: d, label: fmtLong(d) })));
+  const options = (rank.length ? rank.slice(0, 15).map((r) => ({ date: r.date, label: `${fmtLong(r.date)} (${r.yes.length}/${total})` })) : candidateDates(ev).map((d) => ({ date: d, label: fmtLong(d) })));
   const finalMsg = ev.finalDate ? `*${ev.name}*\n\nData definida: *${fmtLong(ev.finalDate)}*\n${link}` : "";
   return `<section class="stack">
     ${api.isDemo ? `<div class="note warn">${icon("alert")}<p>Modo demonstração: este evento existe só neste aparelho. Configure o Firebase (veja o LEIA-ME) antes de mandar o link.</p></div>` : ""}
