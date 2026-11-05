@@ -167,5 +167,31 @@ export async function createFirebaseBackend(cfg, authMode, appCheckSiteKey) {
       }
       return events;
     },
+
+    // Guarda no perfil os eventos em que a pessoa votou, para aparecerem na tela inicial.
+    rememberEvent: (uid, id) => F.setDoc(F.doc(db, "users", uid), { joined: F.arrayUnion(id) }, { merge: true }),
+
+    async listJoinedEvents(uid) {
+      const me = await F.getDoc(F.doc(db, "users", uid));
+      const data = me.exists() ? me.data() : {};
+      const ids = new Set(data.joined || []);
+      // Uma vez por conta: procura respostas feitas antes de existir essa lista.
+      if (!data.joinedScan) {
+        const qs = await F.getDocs(F.query(F.collection(db, "events"), F.orderBy("createdAt", "desc"), F.limit(60))).catch(() => null);
+        const found = [];
+        await Promise.all((qs?.docs || []).map(async (d) => {
+          const r = await F.getDoc(F.doc(db, "events", d.id, "responses", uid)).catch(() => null);
+          if (r?.exists()) found.push(d.id);
+        }));
+        found.forEach((id) => ids.add(id));
+        await F.setDoc(F.doc(db, "users", uid), { joinedScan: true, ...(found.length ? { joined: F.arrayUnion(...found) } : {}) }, { merge: true }).catch(() => {});
+      }
+      const events = [];
+      await Promise.all([...ids].map(async (id) => {
+        const s = await F.getDoc(F.doc(db, "events", id)).catch(() => null);
+        if (s?.exists()) events.push({ id, ...s.data() });
+      }));
+      return events;
+    },
   };
 }

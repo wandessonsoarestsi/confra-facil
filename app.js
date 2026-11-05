@@ -173,6 +173,15 @@ function closeEvent() {
   page = emptyPage(null);
 }
 
+// Quem já votou passa a ver o evento na tela inicial (uma gravação por evento).
+const remembered = new Set();
+function rememberJoined(id, rs) {
+  if (remembered.has(id) || !user || !api.rememberEvent || !rs.some((r) => r.uid === user.uid)) return;
+  remembered.add(id);
+  if ((profile?.joined || []).includes(id)) return;
+  api.rememberEvent(user.uid, id).catch((e) => { remembered.delete(id); console.error(e); });
+}
+
 function openEvent(id) {
   if (page.eventId === id) return renderEvent();
   closeEvent();
@@ -184,6 +193,7 @@ function openEvent(id) {
     if (page.eventId !== id) return;
     page.responses = rs;
     if (!page.dirty) page.draft = null;
+    rememberJoined(id, rs);
     renderEvent();
   }, showError));
 }
@@ -349,8 +359,13 @@ let homeCreateOpen = false;
 async function renderHome() {
   renderShell(`<div class="loading">Carregando…</div>`);
   let events = [];
-  try { events = await api.listMyEvents(user.uid); } catch (e) { showError(e); }
+  let joined = [];
+  [events, joined] = await Promise.all([
+    api.listMyEvents(user.uid).catch((e) => { showError(e); return []; }),
+    (api.listJoinedEvents ? api.listJoinedEvents(user.uid) : Promise.resolve([])).catch((e) => { console.error(e); return []; }),
+  ]);
   if (currentEventId() || !user) return;
+  for (const ev of joined) if (!events.some((e) => e.id === ev.id)) events.push(ev);
   events.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   const first = String(profile?.name || "").split(/\s+/)[0];
   const greet = `<section class="greet"><h1>Olá, ${esc(first)}</h1><p class="muted">Qual encontro vamos marcar?</p></section>`;

@@ -122,6 +122,18 @@ export function createDemoBackend(authMode) {
         .map(([id, e]) => ({ id, ...e }));
     },
 
+    async rememberEvent(uid, id) {
+      const u = (mem.users[uid] ||= {});
+      u.joined = [...new Set([...(u.joined || []), id])];
+      write();
+    },
+
+    async listJoinedEvents(uid) {
+      return Object.entries(mem.events)
+        .filter(([id]) => mem.responses[id]?.[uid] || (mem.users[uid]?.joined || []).includes(id))
+        .map(([id, e]) => ({ id, ...e }));
+    },
+
     // Só no modo demonstração: cria respostas fictícias para ver o cálculo.
     async addFakeResponses(id, dates, n = 8) {
       if (!dates.length) return;
