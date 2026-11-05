@@ -398,3 +398,6 @@ summary { cursor: pointer; font-weight: 600; }
 .dchip.n { background: var(--cannot-soft); color: var(--cannot); }
 .ap-body .avail { padding-top: 4px; }
 .hint.center { text-align: center; margin-top: -4px; }
+.row .field, .row .field > * { min-width: 0; }
+.row input[type="date"] { min-width: 0; width: 100%; }
+.period-edit > * { flex-basis: 100%; }

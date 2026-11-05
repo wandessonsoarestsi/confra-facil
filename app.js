@@ -747,10 +747,14 @@ function tabAdmin(ev) {
       <label class="switch"><input type="checkbox" data-act="toggle-public" ${ev.showResults ? "checked" : ""}><span class="track"></span> Participantes veem o resultado parcial</label>
     </div>
     <div class="card stack">
-      <h3 class="card-title">${icon("sliders")} Dias da semana em votação</h3>
-      <p class="muted">Mudar os dias não apaga nenhuma resposta. O ranking passa a considerar só os dias marcados.</p>
+      <h3 class="card-title">${icon("sliders")} Período e dias em votação</h3>
+      <p class="muted">Mudar o período ou os dias não apaga nenhuma resposta. Nos dias novos, quem marcou "não posso" conta como disponível, e quem marcou "posso" precisa voltar e marcar.</p>
+      <div class="row period-edit" id="period-edit">
+        ${field("De", "calendar", `<input type="date" name="start" value="${ev.start}">`)}
+        ${field("Até", "calendar", `<input type="date" name="end" value="${ev.end}">`)}
+      </div>
       <div class="chips" id="wd-edit">${WD_NAMES.map((n, i) => `<label class="chip"><input type="checkbox" value="${i}" ${(ev.weekdays ?? [0, 1, 2, 3, 4, 5, 6]).includes(i) ? "checked" : ""}><span>${n}</span></label>`).join("")}</div>
-      <button class="btn" data-act="save-wd">${icon("check")} Salvar dias</button>
+      <button class="btn" data-act="save-wd">${icon("check")} Salvar período e dias</button>
     </div>
     <div class="card stack">
       <h3 class="card-title">${icon("flag")} Definir a data final</h3>
@@ -946,9 +950,13 @@ const actions = {
   async "save-wd"() {
     const weekdays = [...app.querySelectorAll("#wd-edit input:checked")].map((i) => Number(i.value));
     if (!weekdays.length) return toast("Escolha pelo menos um dia da semana.");
-    if (!candidateDates({ ...page.ev, weekdays }).length) return toast("Nenhum dia do período cai nesses dias da semana.");
-    await api.updateEvent(page.ev.id, { weekdays });
-    toast("Dias atualizados. As respostas foram mantidas.");
+    const start = app.querySelector('#period-edit input[name=start]')?.value || page.ev.start;
+    const end = app.querySelector('#period-edit input[name=end]')?.value || page.ev.end;
+    if (end < start) return toast("A data final precisa ser depois da inicial.");
+    if ((fromISO(end) - fromISO(start)) / 86400000 > MAX_DAYS) return toast(`O período pode ter no máximo ${MAX_DAYS} dias.`);
+    if (!candidateDates({ ...page.ev, start, end, weekdays }).length) return toast("Nenhum dia do período cai nesses dias da semana.");
+    await api.updateEvent(page.ev.id, { start, end, weekdays });
+    toast("Período atualizado. As respostas foram mantidas.");
   },
   "share-final"() { return shareFinal(page.ev); },
   "clear-final"() { return api.updateEvent(page.ev.id, { finalDate: null }); },
