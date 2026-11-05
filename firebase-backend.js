@@ -171,10 +171,28 @@ export async function createFirebaseBackend(cfg, authMode, appCheckSiteKey) {
     // Guarda no perfil os eventos em que a pessoa votou, para aparecerem na tela inicial.
     rememberEvent: (uid, id) => F.setDoc(F.doc(db, "users", uid), { joined: F.arrayUnion(id) }, { merge: true }),
 
-    async listJoinedEvents(uid) {
+    // Liga o telefone (em hash) aos eventos e acessos da pessoa, para achá-la em outro navegador.
+    linkPhone: (hash, eventId, uid) => F.setDoc(F.doc(db, "phoneLinks", hash), { events: F.arrayUnion(eventId), uids: F.arrayUnion(uid) }, { merge: true }),
+
+    async getPhoneLink(hash) {
+      const s = await F.getDoc(F.doc(db, "phoneLinks", hash));
+      return s.exists() ? s.data() : null;
+    },
+
+    // Passa a resposta feita em outro navegador (mesmo telefone) para o acesso atual.
+    async adoptResponse(id, oldUid, newUid, data, contact) {
+      const b = F.writeBatch(db);
+      b.set(subDoc(id, "responses", newUid), { name: data.name, mode: data.mode, dates: data.dates || [], updatedAt: Date.now() });
+      b.set(subDoc(id, "contacts", newUid), contact);
+      b.delete(subDoc(id, "responses", oldUid));
+      b.delete(subDoc(id, "contacts", oldUid));
+      await b.commit();
+    },
+
+    async listJoinedEvents(uid, extraIds = []) {
       const me = await F.getDoc(F.doc(db, "users", uid));
       const data = me.exists() ? me.data() : {};
-      const ids = new Set(data.joined || []);
+      const ids = new Set([...(data.joined || []), ...extraIds]);
       // Uma vez por conta: procura respostas feitas antes de existir essa lista.
       if (!data.joinedScan) {
         const qs = await F.getDocs(F.query(F.collection(db, "events"), F.orderBy("createdAt", "desc"), F.limit(60))).catch(() => null);

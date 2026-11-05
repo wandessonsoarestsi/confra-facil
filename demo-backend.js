@@ -6,14 +6,14 @@ export const DEMO_CODE = "123456";
 const FAKE_NAMES = ["Ana", "Bruno", "Carla", "Diego", "Elisa", "Fábio", "Gabi", "Hugo", "Íris", "João", "Larissa", "Marcos"];
 
 export function createDemoBackend(authMode) {
-  let mem = { events: {}, responses: {}, users: {}, contacts: {}, secrets: {}, admins: {}, session: null };
+  let mem = { events: {}, responses: {}, users: {}, contacts: {}, secrets: {}, admins: {}, links: {}, session: null };
   const listeners = new Set();
   const emit = () => listeners.forEach((f) => f());
 
   const read = () => {
     try {
       const s = localStorage.getItem(KEY);
-      if (s) mem = { contacts: {}, secrets: {}, admins: {}, ...JSON.parse(s) };
+      if (s) mem = { contacts: {}, secrets: {}, admins: {}, links: {}, ...JSON.parse(s) };
     } catch {}
   };
   const write = () => {
@@ -128,9 +128,25 @@ export function createDemoBackend(authMode) {
       write();
     },
 
-    async listJoinedEvents(uid) {
+    async linkPhone(hash, eventId, uid) {
+      const l = (mem.links[hash] ||= { events: [], uids: [] });
+      if (!l.events.includes(eventId)) l.events.push(eventId);
+      if (!l.uids.includes(uid)) l.uids.push(uid);
+      write();
+    },
+    async getPhoneLink(hash) { return mem.links[hash] || null; },
+    async adoptResponse(id, oldUid, newUid, data, contact) {
+      const resp = (mem.responses[id] ||= {});
+      resp[newUid] = { name: data.name, mode: data.mode, dates: data.dates || [], updatedAt: Date.now() };
+      delete resp[oldUid];
+      const cs = (mem.contacts[id] ||= {});
+      cs[newUid] = contact; delete cs[oldUid];
+      write();
+    },
+
+    async listJoinedEvents(uid, extraIds = []) {
       return Object.entries(mem.events)
-        .filter(([id]) => mem.responses[id]?.[uid] || (mem.users[uid]?.joined || []).includes(id))
+        .filter(([id]) => mem.responses[id]?.[uid] || (mem.users[uid]?.joined || []).includes(id) || extraIds.includes(id))
         .map(([id, e]) => ({ id, ...e }));
     },
 

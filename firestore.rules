@@ -5,6 +5,23 @@ service cloud.firestore {
     function me() { return request.auth.uid; }
     function userPath() { return /databases/$(database)/documents/users/$(request.auth.uid); }
     function evPath(id) { return /databases/$(database)/documents/events/$(id); }
+    // Telefone que a pessoa informou no perfil (no modo simples, o telefone identifica a pessoa).
+    function myPhone() { return get(userPath()).data.get('phone', null); }
+
+    // Liga o hash do telefone aos eventos e acessos da pessoa. Só dá para ler sabendo o hash, e só para acrescentar.
+    match /phoneLinks/{h} {
+      allow get: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['events', 'uids'])
+        && request.resource.data.events is list && request.resource.data.events.size() <= 300
+        && request.resource.data.uids is list && request.resource.data.uids.size() <= 50;
+      allow update: if signedIn()
+        && request.resource.data.keys().hasOnly(['events', 'uids'])
+        && request.resource.data.events is list && request.resource.data.events.size() <= 300
+        && request.resource.data.uids is list && request.resource.data.uids.size() <= 50
+        && request.resource.data.events.hasAll(resource.data.get('events', []))
+        && request.resource.data.uids.hasAll(resource.data.get('uids', []));
+    }
 
     // Perfil de cada pessoa: só ela lê e escreve.
     // "eventsCreated" só pode subir de 1 em 1, junto com a criação de um evento (máximo 30).
@@ -79,7 +96,13 @@ service cloud.firestore {
         allow update: if isAdmin()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['phone'])
           && !('phone' in request.resource.data);
-        allow delete: if signedIn() && (me() == userId || isAdmin());
+        // Mesmo telefone em outro navegador: pode trazer a resposta para o acesso atual.
+        allow delete: if signedIn() && (me() == userId || isAdmin() || samePhone(userId));
+      }
+
+      function samePhone(userId) {
+        let path = /databases/$(database)/documents/events/$(eventId)/contacts/$(userId);
+        return exists(path) && get(path).data.get('phone', null) != null && get(path).data.phone == myPhone();
       }
 
       // Telefone de cada pessoa: só ela e o organizador leem.
@@ -90,7 +113,8 @@ service cloud.firestore {
           && request.resource.data.name is string && request.resource.data.name.size() <= 40
           && (request.resource.data.phone == null
               || (request.resource.data.phone is string && request.resource.data.phone.size() <= 20));
-        allow delete: if signedIn() && (me() == userId || isAdmin());
+        allow delete: if signedIn() && (me() == userId || isAdmin()
+          || (resource.data.get('phone', null) != null && resource.data.phone == myPhone()));
       }
     }
   }

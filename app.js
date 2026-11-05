@@ -75,6 +75,30 @@ async function sha256(text) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
+// Mesmo telefone em outro navegador (ex.: navegador do WhatsApp x Chrome) vira outra conta.
+// O hash do telefone liga essas contas, sem guardar o número.
+const phoneHash = (phone) => sha256("bora-marcar:" + normalizePhone(phone));
+function myPhone() {
+  const p = normalizePhone(profile?.phone || user?.phone || "");
+  return validPhone(p) ? p : null;
+}
+let myLink = { key: "", promise: null };
+function myPhoneLink() {
+  const p = myPhone();
+  if (!p || !api.getPhoneLink) return Promise.resolve(null);
+  if (myLink.key !== p) myLink = { key: p, promise: phoneHash(p).then((h) => api.getPhoneLink(h)).catch(() => null) };
+  return myLink.promise;
+}
+const linked = new Set();
+function linkPhone(phone, eventId, uid) {
+  const p = phone && normalizePhone(phone);
+  if (!p || !validPhone(p) || !api.linkPhone) return;
+  const k = `${p}|${eventId}|${uid}`;
+  if (linked.has(k)) return;
+  linked.add(k);
+  phoneHash(p).then((h) => api.linkPhone(h, eventId, uid)).catch((e) => { linked.delete(k); console.error(e); });
+}
+
 async function refreshOrganizer() {
   const list = CONFIG.adminPhones || [];
   if (!list.length) { organizer = true; return; }
@@ -104,6 +128,7 @@ function startAdmin(ev) {
   page.unsub.push(api.watchContacts(id, (cs) => {
     if (page.eventId !== id) return;
     page.contacts = Object.fromEntries(cs.map((c) => [c.uid, c]));
+    for (const c of cs) linkPhone(c.phone, id, c.uid);
     renderEvent();
   }, (e) => console.error(e)));
   api.getAdminCode(id).then(async (code) => {
@@ -176,10 +201,34 @@ function closeEvent() {
 // Quem já votou passa a ver o evento na tela inicial (uma gravação por evento).
 const remembered = new Set();
 function rememberJoined(id, rs) {
-  if (remembered.has(id) || !user || !api.rememberEvent || !rs.some((r) => r.uid === user.uid)) return;
-  remembered.add(id);
+  const rk = `${user?.uid}|${id}`;
+  if (remembered.has(rk) || !user || !api.rememberEvent || !rs.some((r) => r.uid === user.uid)) return;
+  remembered.add(rk);
+  linkPhone(myPhone(), id, user.uid);
   if ((profile?.joined || []).includes(id)) return;
-  api.rememberEvent(user.uid, id).catch((e) => { remembered.delete(id); console.error(e); });
+  api.rememberEvent(user.uid, id).catch((e) => { remembered.delete(rk); console.error(e); });
+}
+
+// Se a pessoa votou com o mesmo telefone em outro navegador, traz a resposta para cá.
+const adoptTried = new Set();
+async function adoptFromOtherBrowser(id, rs) {
+  const key = `${user?.uid}|${id}`;
+  if (!user || !page.ev || !page.respLoaded || rs.some((r) => r.uid === user.uid) || adoptTried.has(key)) return;
+  adoptTried.add(key);
+  const link = await myPhoneLink();
+  if (!link || page.eventId !== id) return;
+  const old = rs.find((r) => r.uid !== user.uid && (link.uids || []).includes(r.uid));
+  if (!old) return;
+  const ev = page.ev;
+  if (ev && !ev.closed) {
+    try {
+      await api.adoptResponse(id, old.uid, user.uid, { ...old, name: profile?.name || old.name }, { name: profile?.name || old.name, phone: myPhone() });
+      toast("Encontramos as datas que você marcou em outro navegador.", 4000);
+      return;
+    } catch (e) { console.error(e); }
+  }
+  // Votação encerrada (ou sem permissão): mostra as datas antigas como suas, só para conferir.
+  if (page.eventId === id) { page.adopted = old; renderEvent(); }
 }
 
 function openEvent(id) {
@@ -187,13 +236,15 @@ function openEvent(id) {
   closeEvent();
   page = emptyPage(id);
   renderShell(`<div class="loading">Carregando evento…</div>`);
-  page.unsub.push(api.watchEvent(id, (ev) => { if (page.eventId !== id) return; page.ev = ev; page.loaded = true; renderEvent(); }, showError));
+  page.unsub.push(api.watchEvent(id, (ev) => { if (page.eventId !== id) return; page.ev = ev; page.loaded = true; renderEvent(); adoptFromOtherBrowser(id, page.responses); }, showError));
   api.isCoAdmin(id, user.uid).then((v) => { if (page.eventId === id && v) { page.coAdmin = true; renderEvent(); } }).catch(() => {});
   page.unsub.push(api.watchResponses(id, (rs) => {
     if (page.eventId !== id) return;
     page.responses = rs;
+    page.respLoaded = true;
     if (!page.dirty) page.draft = null;
     rememberJoined(id, rs);
+    adoptFromOtherBrowser(id, rs);
     renderEvent();
   }, showError));
 }
@@ -362,7 +413,7 @@ async function renderHome() {
   let joined = [];
   [events, joined] = await Promise.all([
     api.listMyEvents(user.uid).catch((e) => { showError(e); return []; }),
-    (api.listJoinedEvents ? api.listJoinedEvents(user.uid) : Promise.resolve([])).catch((e) => { console.error(e); return []; }),
+    (api.listJoinedEvents ? myPhoneLink().then((l) => api.listJoinedEvents(user.uid, l?.events || [])) : Promise.resolve([])).catch((e) => { console.error(e); return []; }),
   ]);
   if (currentEventId() || !user) return;
   for (const ev of joined) if (!events.some((e) => e.id === ev.id)) events.push(ev);
@@ -427,7 +478,7 @@ function renderEvent() {
   }
   const isAdmin = isEventAdmin(ev);
   if (isAdmin) { startAdmin(ev); migrateOldPhones(); }
-  const mine = page.responses.find((r) => r.uid === user.uid);
+  const mine = page.responses.find((r) => r.uid === user.uid) || (ev.closed ? page.adopted : null) || undefined;
   if (!page.draft) page.draft = { mode: mine?.mode || "can", dates: new Set(mine?.dates || []) };
   const canSee = isAdmin || ev.showResults || ev.closed;
   const tabs = [["minhas", "Minhas datas"]];
@@ -862,6 +913,7 @@ const actions = {
     page.dirty = false;
     try {
       await api.saveResponse(ev.id, user.uid, data, { name: profile.name, phone: profile.phone || user.phone || null });
+      linkPhone(myPhone(), ev.id, user.uid);
       if (page.importedFrom && isEventAdmin(ev)) {
         await api.deleteResponse(ev.id, page.importedFrom).catch((e) => console.error(e));
         page.importedFrom = null;
